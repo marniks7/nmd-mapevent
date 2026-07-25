@@ -1044,19 +1044,16 @@ function updateShopProjection(shop, contribution, targetStatus) {
     && contribution.remaining.elemental >= 0 ? 'positive' : 'negative';
   const entireContributionClass = contribution.entire.universal >= 0
     && contribution.entire.elemental >= 0 ? 'positive' : 'negative';
-  const remainingSource = shop.remainingSourceIsManual
-    ? `your End of Day ${formatNumber.format(shop.remainingAfterDay)} entry`
-    : `projected End of Day ${formatNumber.format(shop.remainingAfterDay)}`;
   const actionCards = [];
-  if (remaining.offers.coins > 0) {
-    actionCards.push(`
+  const coinActionCard = remaining.offers.coins > 0
+    ? `
       <article class="shop-action-card coin-purchase-action">
         <span>Coin-priced items</span>
         <strong>Buy every one shown</strong>
         <small>${formatNumber.format(remaining.offers.coins)} expected for the rest of the event</small>
       </article>
-    `);
-  }
+    `
+    : '';
   if (hasShopItems(remaining.targetFragments, shopFragmentLevels)) {
     actionCards.push(`
       <article class="shop-action-card">
@@ -1084,6 +1081,7 @@ function updateShopProjection(shop, contribution, targetStatus) {
       </article>
     `);
   }
+  if (coinActionCard) actionCards.push(coinActionCard);
   if (actionCards.length === 0) {
     actionCards.push(`
       <article class="shop-action-card">
@@ -1112,7 +1110,6 @@ function updateShopProjection(shop, contribution, targetStatus) {
     <section class="shop-action-section${targetMissing ? ' shop-plan-missing' : ''}">
       <div class="shop-action-heading">
         <h3>What to buy for the rest of the event</h3>
-        <p>Based on ${remainingSource}.</p>
       </div>
       ${targetMissing ? `
         <div class="shop-target-warning" role="alert">
@@ -1461,7 +1458,7 @@ function analyzeShopTarget({
       covered: false,
       missing,
       reason: 'The selected shop strategy is not designed to complete the shard targets.',
-      action: 'Select “Buy all items available for coins + best target value” to make purchases target the missing shards.',
+      action: 'Select “Best target value + all previous” to make purchases target the missing shards.',
     };
   }
 
@@ -1593,8 +1590,6 @@ function calculateProjection() {
     ...result.shop,
     remaining: result.shop.all,
     entire: entireEventProjection.result.shop.all,
-    remainingAfterDay: currentDay,
-    remainingSourceIsManual: Boolean(result.days[currentDay]?.isManual),
   };
   const shopTargetStatus = analyzeShopTarget({
     result,
@@ -1815,6 +1810,14 @@ function updateStatus(currentDay, eventDays, gameDayEndUtc) {
   });
   document.getElementById('eventStatus').textContent = `Game day ${currentDay}/${eventDays} · ends ${endLabel} UTC`;
 }
+
+function initializeResponsiveDetails() {
+  const collapseResults = window.matchMedia('(max-width: 760px)').matches;
+  document.querySelectorAll('[data-mobile-collapsed]').forEach((details) => {
+    details.open = !collapseResults;
+  });
+}
+
 async function loadConfig() {
   const response = await fetch('data/event-config.json');
   if (!response.ok) {
@@ -1824,6 +1827,7 @@ async function loadConfig() {
 }
 
 async function boot() {
+  initializeResponsiveDetails();
   try {
     await loadConfig();
     const savedState = readStoredState();

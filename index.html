@@ -121,15 +121,23 @@
         <summary>Shop Plan <span class="estimate-badge">Uses estimated probabilities</span></summary>
         <div class="extras-content shop-plan-content">
           <div class="field-grid shop-control-fields">
-            <label>
-              Shop strategy
+            <div class="plan-field">
+              <div class="field-label-with-help">
+                <label for="shopStrategy">Shop strategy</label>
+                <details class="info-tooltip">
+                  <summary aria-label="About the shop strategies">i</summary>
+                  <div class="info-tooltip-content">
+                    <p>Each strategy includes every option above it. Finish fragment sets buys the missing jade-priced fragments when more than 5 would otherwise remain unused. Best target value uses jade and random-fragment offers that contribute most efficiently toward the selected target.</p>
+                  </div>
+                </details>
+              </div>
               <select id="shopStrategy">
-                <option value="0">0 — No shop</option>
-                <option value="1" selected>1 — Buy all items available for coins</option>
-                <option value="2">2 — Buy all items available for coins + finish fragment sets</option>
-                <option value="3">3 — Buy all items available for coins + best target value</option>
+                <option value="0">1 — No Shop</option>
+                <option value="1" selected>2 — Buy all items available for coins</option>
+                <option value="2">3 — Finish fragment sets + previous</option>
+                <option value="3">4 — Best target value + all previous</option>
               </select>
-            </label>
+            </div>
             <label>
               Resets per day (0–10)
               <input id="shopResetsPerDay" type="number" min="0" max="10" value="0">
@@ -140,8 +148,6 @@
               <small>For the rest of the event, including resets; 0 means unlimited</small>
             </label>
           </div>
-          <p class="shop-plan-note">Buy all items available for coins is the default. Finish fragment sets buys the missing jade-priced fragments when more than 5 would otherwise remain unused. Best target value uses jade and random-fragment offers that contribute most efficiently toward the selected target.</p>
-          <p class="shop-plan-note">The remaining jade budget is one shared pool for all days left in the event. Results begin after the current End of Day inventory.</p>
           <section class="shop-results-panel" aria-labelledby="shopProjectionHeading">
             <div class="panel-heading">
               <h2 id="shopProjectionHeading">Shop Results</h2>
@@ -224,14 +230,14 @@
     </form>
 
     <section class="layout-grid results-layout">
-      <details class="panel results-panel collapsible-results-panel" open>
+      <details class="panel results-panel collapsible-results-panel" data-mobile-collapsed open>
         <summary class="panel-heading collapsible-panel-heading">
           <h2>Projection Details</h2>
         </summary>
         <div class="projection-list" id="projectionList"></div>
       </details>
 
-      <details class="panel results-panel collapsible-results-panel" open>
+      <details class="panel results-panel collapsible-results-panel" data-mobile-collapsed open>
         <summary class="panel-heading collapsible-panel-heading">
           <h2>Map Breakdown</h2>
         </summary>
