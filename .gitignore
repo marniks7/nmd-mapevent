@@ -4,6 +4,7 @@
 node_modules
 dist
 .cache
+.agent-browser-profile/
 .idea/
 *.iml
 chat-*.txt

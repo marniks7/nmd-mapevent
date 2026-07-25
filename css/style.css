@@ -1205,6 +1205,59 @@ select.custom-static-value {
   gap: 14px;
 }
 
+.shop-plan-summary {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 10px;
+  list-style: none;
+}
+
+.shop-plan-summary::-webkit-details-marker {
+  display: none;
+}
+
+.shop-plan-summary::before {
+  content: "▸";
+  color: var(--accent-dark);
+  font-size: 0.9rem;
+  transition: transform 150ms ease;
+}
+
+.shop-plan-panel[open] > .shop-plan-summary::before {
+  transform: rotate(90deg);
+}
+
+.shop-plan-summary-title {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.shop-plan-collapsed-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.shop-plan-panel[open] > .shop-plan-summary .shop-plan-collapsed-summary {
+  display: none;
+}
+
+.shop-plan-collapsed-summary > span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #f7fafb;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 .shop-control-fields {
   grid-template-columns: repeat(3, minmax(180px, 1fr));
 }
@@ -1316,11 +1369,14 @@ select.custom-static-value {
 
 .shop-action-heading {
   display: grid;
-  gap: 3px;
+  grid-template-columns: minmax(150px, 0.35fr) minmax(0, 1fr) auto;
+  gap: 3px 12px;
+  padding: 0 12px 0 16px;
 }
 
 .shop-action-heading h3,
 .shop-action-heading p {
+  grid-column: 2;
   margin: 0;
 }
 
@@ -1601,6 +1657,15 @@ select.custom-static-value {
 }
 
 @media (max-width: 760px) {
+  .shop-plan-summary {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .shop-plan-collapsed-summary {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+
   .shop-control-fields,
   .shop-summary-grid,
   .shop-static-config {
@@ -1921,6 +1986,15 @@ select.custom-static-value {
   .shop-action-card {
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;
+  }
+
+  .shop-action-heading {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shop-action-heading h3,
+  .shop-action-heading p {
+    grid-column: 1;
   }
 
   .shop-action-card small {

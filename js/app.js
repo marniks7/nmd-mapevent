@@ -45,6 +45,12 @@ const runKinds = ['own', 'member'];
 const weekdayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const shopFragmentLevels = ['common', 'epic', 'superior', 'divine', 'random'];
 const shopMapLevels = ['common', 'epic', 'superior', 'divine'];
+const shopStrategySummaryLabels = {
+  0: 'No shop',
+  1: 'Coin items',
+  2: 'Finish fragment sets',
+  3: 'Best target value',
+};
 const shopSimpleProbabilityGroups = [
   ['jadeItemKinds', 'Items offered for jades: fragment or map', ['fragment', 'map']],
   ['jadeFragmentLevels', 'Pay with jades: fragment rarity', shopFragmentLevels],
@@ -1014,11 +1020,25 @@ function hasShopItems(totals, levels) {
   return levels.some((level) => Number(totals?.[level]) > 0);
 }
 
+function updateShopPlanSummary(shop) {
+  const strategy = Math.floor(numberValue('shopStrategy'));
+  const resetsPerDay = Math.floor(numberValue('shopResetsPerDay'));
+  document.getElementById('shopPlanStrategySummary').textContent =
+    shopStrategySummaryLabels[strategy] || 'Custom strategy';
+  document.getElementById('shopPlanResetsSummary').textContent = resetsPerDay > 0
+    ? `${plural(resetsPerDay, 'reset')}/day`
+    : 'No resets';
+  document.getElementById('shopPlanJadesSummary').textContent = shop.jadeBudget === null
+    ? 'Unlimited jades'
+    : `${formatNumber.format(shop.jadeBudgetRemaining)} jades left`;
+}
+
 function updateShopProjection(shop, contribution, targetStatus) {
   const remaining = shop.remaining;
   const entire = shop.entire;
   const enabled = shop.enabled;
   const targetMissing = enabled && !targetStatus.covered;
+  updateShopPlanSummary(shop);
   document.querySelector('.remaining-cost-card')?.classList.toggle('shop-plan-missing', targetMissing);
   document.getElementById('shopRemainingJades').textContent = formatNumber.format(remaining.jadeSpent.total);
   document.getElementById('shopRemainingBreakdown').textContent = `${formatNumber.format(remaining.jadeSpent.purchases)} for purchases + ${formatNumber.format(remaining.jadeSpent.resets)} for resets`;
@@ -1512,7 +1532,9 @@ function analyzeShopTarget({
       covered: false,
       missing,
       reason: `At ${formatNumber.format(shopOptions.resetsPerDay)} resets per day, too few useful offers are expected in the ${formatNumber.format(daysRemaining)} remaining days.`,
-      action: 'Increase Resets per day. The current jade budget is sufficient in the estimate.',
+      action: hasJadeLimit
+        ? 'Increase Resets per day. The current jade budget is sufficient in the estimate.'
+        : 'Increase Resets per day.',
     };
   }
   if (bothFix) {

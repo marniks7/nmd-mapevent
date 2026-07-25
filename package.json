@@ -11,6 +11,7 @@
   "scripts": {
     "test": "node --test",
     "start": "webpack serve --open --config webpack.config.dev.js",
+    "start:headless": "webpack serve --config webpack.config.headless.js",
     "build": "webpack --config webpack.config.prod.js"
   },
   "devDependencies": {
