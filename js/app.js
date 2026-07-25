@@ -1028,9 +1028,8 @@ function updateShopPlanSummary(shop) {
   document.getElementById('shopPlanResetsSummary').textContent = resetsPerDay > 0
     ? `${plural(resetsPerDay, 'reset')}/day`
     : 'No resets';
-  document.getElementById('shopPlanJadesSummary').textContent = shop.jadeBudget === null
-    ? 'Unlimited jades'
-    : `${formatNumber.format(shop.jadeBudgetRemaining)} jades left`;
+  document.getElementById('shopPlanJadesSummary').textContent =
+    `Remaining estimate: ${formatNumber.format(shop.remaining.jadeSpent.total)} jades`;
 }
 
 function updateShopProjection(shop, contribution, targetStatus) {
