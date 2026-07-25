@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Treasure Map Event</title>
+  <link rel="stylesheet" href="css/style.css">
+  <meta name="description" content="Treasure map event progress tracker">
+  <meta property="og:title" content="Treasure Map Event">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://marniks7.github.io/nmd-mapevent/">
+  <meta property="og:image" content="https://marniks7.github.io/nmd-mapevent/icon.png">
+  <meta property="og:image:alt" content="Treasure Map Event icon">
+  <link rel="canonical" href="https://marniks7.github.io/nmd-mapevent/">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#10212a">
+</head>
+
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Event tracker</p>
+        <h1>Treasure Map Event</h1>
+      </div>
+      <div class="status-pill" id="eventStatus">Loading rules</div>
+    </header>
+
+    <section class="summary-grid" aria-label="Projected progress">
+      <article class="metric-card">
+        <span>Universal projected</span>
+        <strong id="universalProjected">0</strong>
+        <small id="universalRaw" class="raw-projection">0/3,000 without conversion</small>
+        <div class="progress-track"><span id="universalBar"></span></div>
+        <small id="universalNeed">Target 3,000</small>
+        <fieldset class="inline-fieldset summary-fieldset">
+          <legend>Mythical Included</legend>
+          <label class="check-row">
+            <input id="includeMythicalMember" type="checkbox" checked>
+            Member
+          </label>
+          <label class="check-row">
+            <input id="includeMythicalOwner" type="checkbox" checked>
+            Owner
+          </label>
+        </fieldset>
+      </article>
+      <article class="metric-card">
+        <span>Elemental projected</span>
+        <strong id="elementalProjected">0</strong>
+        <small id="elementalRaw" class="raw-projection">0/1,250 without conversion</small>
+        <div class="progress-track elemental"><span id="elementalBar"></span></div>
+        <small id="elementalNeed">Target 1,250</small>
+      </article>
+      <article class="metric-card">
+        <span>Days remaining</span>
+        <div class="days-value"><strong id="daysRemaining">0</strong><small class="subtle-note">(excluding today)</small></div>
+        <small id="weeksRemaining">0 weeks remaining after current week</small>
+      </article>
+    </section>
+
+    <form class="panel controls-panel" id="trackerForm">
+      <div class="panel-heading plan-heading">
+        <h2>Plan</h2>
+        <details class="actions-menu">
+          <summary>Actions</summary>
+          <div class="actions-row">
+            <button class="ghost-button danger-button" id="resetButton" type="button">Reset entries</button>
+            <button class="ghost-button" id="resetStaticConfigButton" type="button">Reset static configuration</button>
+            <button class="ghost-button" id="resetConfigButton" type="button">Reset plan and configuration</button>
+            <button class="ghost-button" id="downloadButton" type="button">Download data</button>
+            <button class="ghost-button" id="uploadButton" type="button">Upload data</button>
+            <input id="uploadInput" class="visually-hidden" type="file" accept="application/json,.json">
+          </div>
+        </details>
+      </div>
+      <div class="config-notice" id="staticConfigNotice" hidden>
+        <span><strong>Custom static configuration is active.</strong> Saved values differ from the current app defaults.</span>
+        <button class="ghost-button" id="resetStaticConfigNoticeButton" type="button">Use current defaults</button>
+      </div>
+      <div class="field-grid primary-fields">
+        <label>
+          Universal target
+          <input id="targetUniversal" type="number" min="0" value="3000">
+        </label>
+        <label>
+          Elemental target
+          <input id="targetElemental" type="number" min="0" value="1250">
+        </label>
+        <div class="plan-field">
+          <div class="field-label-with-help">
+            <label for="luckyElementalPerDay">Lucky elemental per day</label>
+            <details class="info-tooltip">
+              <summary aria-label="About the Lucky elemental estimate">i</summary>
+              <div class="info-tooltip-content">
+                <p>The default of 15 elemental shards per day is a conservative estimate based on tracking from the two previous events.</p>
+                <p>The tracked averages were 21.8 per day in Summer 2025 and 17 per day in Winter 2026. Lucky Rewards can vary between events, so you can replace 15 with your own observed rate.</p>
+                <figure>
+                  <img src="img/lucky-elemental-history.png" alt="Lucky Rewards comparison: the 2025 Summer event averaged 21.8 elemental shards per day and the 2026 Winter event averaged 17 per day.">
+                  <figcaption>Tracked Lucky Rewards from the 2025 Summer and 2026 Winter events.</figcaption>
+                </figure>
+              </div>
+            </details>
+          </div>
+          <input id="luckyElementalPerDay" type="number" min="0" value="15">
+        </div>
+        <label>
+          Random Map Craft
+          <select id="randomStrategy">
+            <option value="minimum">Minimum (all common)</option>
+          </select>
+        </label>
+
+      </div>
+
+      <details class="extras-panel shop-plan-panel" open>
+        <summary>Shop Plan <span class="estimate-badge">Uses estimated probabilities</span></summary>
+        <div class="extras-content shop-plan-content">
+          <div class="field-grid shop-control-fields">
+            <label>
+              Shop strategy
+              <select id="shopStrategy">
+                <option value="0">0 — No shop</option>
+                <option value="1" selected>1 — Buy all items available for coins</option>
+                <option value="2">2 — Buy all items available for coins + finish fragment sets</option>
+                <option value="3">3 — Buy all items available for coins + best target value</option>
+              </select>
+            </label>
+            <label>
+              Resets per day (0–10)
+              <input id="shopResetsPerDay" type="number" min="0" max="10" value="0">
+            </label>
+            <label>
+              Remaining jade budget
+              <input id="shopJadeBudget" type="number" min="0" value="0">
+              <small>For the rest of the event, including resets; 0 means unlimited</small>
+            </label>
+          </div>
+          <p class="shop-plan-note">Buy all items available for coins is the default. Finish fragment sets buys the missing jade-priced fragments when more than 5 would otherwise remain unused. Best target value uses jade and random-fragment offers that contribute most efficiently toward the selected target.</p>
+          <p class="shop-plan-note">The remaining jade budget is one shared pool for all days left in the event. Results begin after the current End of Day inventory.</p>
+          <section class="shop-results-panel" aria-labelledby="shopProjectionHeading">
+            <div class="panel-heading">
+              <h2 id="shopProjectionHeading">Shop Results</h2>
+            </div>
+            <div class="shop-summary-grid">
+              <article class="shop-summary-card remaining-cost-card">
+                <span>Remaining jade estimate</span>
+                <strong id="shopRemainingJades">0</strong>
+                <small id="shopRemainingBreakdown">0 for purchases + 0 for resets</small>
+              </article>
+              <article class="shop-summary-card">
+                <span>Entire-event jade estimate</span>
+                <strong id="shopTotalJades">0</strong>
+                <small id="shopEntireBreakdown">0 for purchases + 0 for resets</small>
+              </article>
+              <article class="shop-summary-card">
+                <span>Budget left</span>
+                <strong id="shopBudgetRemaining">Unlimited</strong>
+              </article>
+            </div>
+            <div class="projection-list" id="shopProjectionDetails"></div>
+          </section>
+        </div>
+      </details>
+
+      <div class="panel-heading split-heading inventory-heading">
+        <h2>End of Day Inventory</h2>
+        <div class="inventory-visibility-controls" aria-label="Visible inventory days">
+          <label class="check-row">
+            <input id="showPreviousInventoryRows" type="checkbox">
+            Show previous days
+          </label>
+          <label class="check-row">
+            <input id="showFutureInventoryRows" type="checkbox" checked>
+            Show future days
+          </label>
+        </div>
+      </div>
+      <div class="table-hint" id="inventoryTableHelp">Enter the balances you actually have at the end of a day. An entered value replaces that day’s estimate and recalculates every following day. Values shown in gray are projected balances; leave a cell empty to use its projection.</div>
+      <div class="daily-table-wrap">
+        <div class="daily-table" id="dailyInventoryTable" aria-describedby="inventoryTableHelp"></div>
+      </div>
+
+      <details class="extras-panel">
+        <summary>Event Setup Extras</summary>
+        <div class="field-grid compact extras-content">
+          <label>
+            Season
+            <select id="season">
+              <option value="summer">Summer</option>
+              <option value="winter">Winter</option>
+            </select>
+          </label>
+          <label>
+            Event length
+            <input id="eventDays" type="number" min="1" value="28">
+          </label>
+          <label>
+            Start date
+            <input id="startDate" type="date">
+          </label>
+          <label>
+            End date
+            <input id="endDate" type="date" readonly>
+          </label>
+          <label class="check-row">
+            <input id="hideSpecificElements" type="checkbox">
+            Hide fire, wind, water, and lightning columns
+          </label>
+          <label class="check-row">
+            <input id="showQuestColumn" type="checkbox">
+            Show quest reward column
+          </label>
+          <label class="check-row">
+            <input id="showRunColumns" type="checkbox">
+            Show daily map run columns
+          </label>
+        </div>
+      </details>
+    </form>
+
+    <section class="layout-grid results-layout">
+      <details class="panel results-panel collapsible-results-panel" open>
+        <summary class="panel-heading collapsible-panel-heading">
+          <h2>Projection Details</h2>
+        </summary>
+        <div class="projection-list" id="projectionList"></div>
+      </details>
+
+      <details class="panel results-panel collapsible-results-panel" open>
+        <summary class="panel-heading collapsible-panel-heading">
+          <h2>Map Breakdown</h2>
+        </summary>
+        <div class="breakdown-table" id="breakdownTable"></div>
+      </details>
+    </section>
+
+    <details class="panel extras-panel reward-extras">
+      <summary>Static Configuration <span class="config-state-badge" id="staticConfigStatus">Using defaults</span></summary>
+      <div id="generalStaticConfig" class="general-static-config"></div>
+      <div class="reward-table" id="rewardInputs"></div>
+      <div class="quest-table" id="questConfig"></div>
+    </details>
+
+    <details class="panel extras-panel reward-extras shop-static-panel">
+      <summary>Shop Static Configuration <span class="estimate-badge">Editable estimates</span> <span class="config-state-badge" id="shopStaticConfigStatus">Using defaults</span></summary>
+      <div id="shopStaticConfig" class="shop-static-config"></div>
+    </details>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+
+</html>

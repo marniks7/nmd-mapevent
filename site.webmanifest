@@ -1,0 +1,15 @@
+{
+  "short_name": "Map Event",
+  "name": "NMD Map Event Tracker",
+  "id": "./",
+  "icons": [{
+    "src": "icon.png",
+    "type": "image/png",
+    "sizes": "192x192"
+  }],
+  "start_url": "./?utm_source=homescreen",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f8",
+  "theme_color": "#10212a"
+}

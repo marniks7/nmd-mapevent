@@ -1,0 +1,463 @@
+{
+  "eventName": "Treasure Map Event",
+  "seasons": {
+    "summer": {
+      "label": "Summer",
+      "defaultDays": 28
+    },
+    "winter": {
+      "label": "Winter",
+      "defaultDays": 35
+    }
+  },
+  "mapLevels": [
+    "common",
+    "epic",
+    "superior",
+    "divine",
+    "mythical"
+  ],
+  "crafting": {
+    "fragmentsPerMap": 10,
+    "randomFragmentsPerMap": 10,
+    "randomFragmentsPerDay": 19
+  },
+  "shop": {
+    "slotsPerShop": {
+      "coins": 1,
+      "jades": 4,
+      "randomFragments": 2
+    },
+    "maxDailyResets": 10,
+    "resetCosts": [
+      30,
+      30,
+      50,
+      50,
+      80,
+      80,
+      100,
+      100,
+      150,
+      150
+    ],
+    "prices": {
+      "jades": {
+        "fragments": {
+          "common": [
+            { "quantity": 1, "cost": 25 },
+            { "quantity": 2, "cost": 48 },
+            { "quantity": 3, "cost": 70 }
+          ],
+          "epic": [
+            { "quantity": 1, "cost": 50 },
+            { "quantity": 2, "cost": 95 },
+            { "quantity": 3, "cost": 135 }
+          ],
+          "superior": [
+            { "quantity": 1, "cost": 80 },
+            { "quantity": 2, "cost": 150 },
+            { "quantity": 3, "cost": 215 }
+          ],
+          "divine": [
+            { "quantity": 1, "cost": 150 },
+            { "quantity": 2, "cost": 285 },
+            { "quantity": 3, "cost": 405 }
+          ],
+          "random": [
+            { "quantity": 1, "cost": 30 },
+            { "quantity": 2, "cost": 55 },
+            { "quantity": 3, "cost": 80 }
+          ]
+        },
+        "maps": {
+          "common": 250,
+          "epic": 500,
+          "superior": 800,
+          "divine": 1500
+        }
+      },
+      "randomFragments": {
+        "common": 1,
+        "epic": 2,
+        "superior": 4,
+        "divine": 10
+      }
+    },
+    "estimatedProbabilities": {
+      "jadeItemKinds": {
+        "fragment": 90,
+        "map": 10
+      },
+      "jadeFragmentLevels": {
+        "common": 35,
+        "epic": 25,
+        "superior": 20,
+        "divine": 15,
+        "random": 5
+      },
+      "jadeMapLevels": {
+        "common": 25,
+        "epic": 25,
+        "superior": 25,
+        "divine": 25
+      },
+      "jadeFragmentQuantities": {
+        "1": 80,
+        "2": 12,
+        "3": 8
+      },
+      "randomCurrencyLevels": {
+        "common": 40,
+        "epic": 30,
+        "superior": 20,
+        "divine": 10
+      },
+      "randomCurrencyQuantities": {
+        "common": { "1": 55, "2": 35, "3": 10 },
+        "epic": { "1": 70, "2": 23, "3": 7 },
+        "superior": { "1": 82, "2": 15, "3": 3 },
+        "divine": { "1": 100, "2": 0, "3": 0 }
+      },
+      "coinItemKinds": {
+        "nonEvent": 20,
+        "fragment": 72,
+        "map": 8
+      },
+      "coinFragmentLevels": {
+        "common": 70,
+        "random": 10,
+        "epic": 10,
+        "superior": 10
+      },
+      "coinMapLevels": {
+        "common": 100,
+        "epic": 0,
+        "superior": 0,
+        "divine": 0
+      },
+      "coinFragmentQuantities": {
+        "common": { "1": 0, "2": 70, "3": 30 },
+        "random": { "1": 0, "2": 70, "3": 30 },
+        "epic": { "1": 0, "2": 70, "3": 30 },
+        "superior": { "1": 50, "2": 50, "3": 0 }
+      }
+    }
+  },
+  "joinLimits": {
+    "daily": {
+      "common": 3,
+      "epic": 2,
+      "superior": 1
+    },
+    "weekly": {
+      "divine": 2
+    },
+    "event": {
+      "mythical": 1
+    }
+  },
+  "ownLimits": {
+    "event": {
+      "mythical": 1
+    }
+  },
+  "fragmentRules": {
+    "common": {
+      "ownRun": 1,
+      "memberRun": 1
+    },
+    "epic": {
+      "ownRun": 1,
+      "memberRun": 1
+    },
+    "superior": {
+      "ownRun": 1,
+      "memberRun": 1
+    },
+    "divine": {
+      "weeklyCap": 3,
+      "ownRun": 0,
+      "memberRun": 0,
+      "anyMapSource": true
+    },
+    "mythical": {
+      "ownRun": 0,
+      "memberRun": 0,
+      "hasFragments": false
+    }
+  },
+  "rewards": {
+    "own": {
+      "common": {
+        "universal": 5,
+        "elemental": 4
+      },
+      "epic": {
+        "universal": 10,
+        "elemental": 8
+      },
+      "superior": {
+        "universal": 20,
+        "elemental": 16
+      },
+      "divine": {
+        "universal": 40,
+        "elemental": 30
+      },
+      "mythical": {
+        "universal": 150,
+        "elemental": 0
+      }
+    },
+    "member": {
+      "common": {
+        "universal": 3,
+        "elemental": 2
+      },
+      "epic": {
+        "universal": 5,
+        "elemental": 4
+      },
+      "superior": {
+        "universal": 10,
+        "elemental": 8
+      },
+      "divine": {
+        "universal": 20,
+        "elemental": 15
+      },
+      "mythical": {
+        "universal": 75,
+        "elemental": 0
+      }
+    }
+  },
+  "defaultTargets": {
+    "universal": 3000,
+    "elemental": 1250
+  },
+  "elements": [
+    "fire",
+    "wind",
+    "water",
+    "lightning"
+  ],
+  "notes": [
+    "Event runs from July 8 through August 4. Weekly reset is Saturday at 7:00 PM UTC.",
+    "Mythical maps do not use fragments and are limited to 1 own run and 1 member run per event.",
+    "Quest fragment rewards are projected from total, level-specific, and clan/member treasure hunt counts."
+  ],
+  "luckyRewards": {
+    "elementalPerDay": 15
+  },
+  "eventDates": {
+    "start": "2026-07-08",
+    "end": "2026-08-04",
+    "activationUtc": "2026-07-08T04:00:00Z",
+    "gameDayRolloverUtc": "19:00",
+    "weeklyReset": {
+      "weekday": "saturday",
+      "timeUtc": "19:00"
+    }
+  },
+  "ui": {
+    "hideSpecificElements": false,
+    "showQuestColumn": false,
+    "showRunColumns": false
+  },
+  "quests": [
+    {
+      "name": "Complete Treasure Hunt 10 times",
+      "counter": "total",
+      "threshold": 10,
+      "reward": {
+        "count": 2,
+        "fragment": "random"
+      }
+    },
+    {
+      "name": "Complete Treasure Hunt 30 times",
+      "counter": "total",
+      "threshold": 30,
+      "reward": {
+        "count": 3,
+        "fragment": "random"
+      }
+    },
+    {
+      "name": "Complete Treasure Hunt 50 times",
+      "counter": "total",
+      "threshold": 50,
+      "reward": {
+        "count": 5,
+        "fragment": "random"
+      }
+    },
+    {
+      "name": "Complete Treasure Hunt 80 times",
+      "counter": "total",
+      "threshold": 80,
+      "reward": {
+        "count": 10,
+        "fragment": "random"
+      }
+    },
+    {
+      "name": "Complete Common Treasure Hunt 5 times",
+      "counter": "level",
+      "level": "common",
+      "threshold": 5,
+      "reward": {
+        "count": 1,
+        "fragment": "epic"
+      }
+    },
+    {
+      "name": "Complete Common Treasure Hunt 15 times",
+      "counter": "level",
+      "level": "common",
+      "threshold": 15,
+      "reward": {
+        "count": 1,
+        "fragment": "epic"
+      }
+    },
+    {
+      "name": "Complete Common Treasure Hunt 30 times",
+      "counter": "level",
+      "level": "common",
+      "threshold": 30,
+      "reward": {
+        "count": 2,
+        "fragment": "epic"
+      }
+    },
+    {
+      "name": "Complete Common Treasure Hunt 50 times",
+      "counter": "level",
+      "level": "common",
+      "threshold": 50,
+      "reward": {
+        "count": 2,
+        "fragment": "epic"
+      }
+    },
+    {
+      "name": "Complete Epic Treasure Hunt 5 times",
+      "counter": "level",
+      "level": "epic",
+      "threshold": 5,
+      "reward": {
+        "count": 1,
+        "fragment": "superior"
+      }
+    },
+    {
+      "name": "Complete Epic Treasure Hunt 10 times",
+      "counter": "level",
+      "level": "epic",
+      "threshold": 10,
+      "reward": {
+        "count": 1,
+        "fragment": "superior"
+      }
+    },
+    {
+      "name": "Complete Epic Treasure Hunt 15 times",
+      "counter": "level",
+      "level": "epic",
+      "threshold": 15,
+      "reward": {
+        "count": 1,
+        "fragment": "superior"
+      }
+    },
+    {
+      "name": "Complete Epic Treasure Hunt 25 times",
+      "counter": "level",
+      "level": "epic",
+      "threshold": 25,
+      "reward": {
+        "count": 2,
+        "fragment": "superior"
+      }
+    },
+    {
+      "name": "Complete Superior Treasure Hunt 1 time",
+      "counter": "level",
+      "level": "superior",
+      "threshold": 1,
+      "reward": {
+        "count": 1,
+        "fragment": "divine"
+      }
+    },
+    {
+      "name": "Complete Superior Treasure Hunt 3 times",
+      "counter": "level",
+      "level": "superior",
+      "threshold": 3,
+      "reward": {
+        "count": 1,
+        "fragment": "divine"
+      }
+    },
+    {
+      "name": "Complete Superior Treasure Hunt 6 times",
+      "counter": "level",
+      "level": "superior",
+      "threshold": 6,
+      "reward": {
+        "count": 1,
+        "fragment": "divine"
+      }
+    },
+    {
+      "name": "Complete Superior Treasure Hunt 10 times",
+      "counter": "level",
+      "level": "superior",
+      "threshold": 10,
+      "reward": {
+        "count": 1,
+        "fragment": "divine"
+      }
+    },
+    {
+      "name": "Treasure Hunt with Clan members 5 times",
+      "counter": "member",
+      "threshold": 5,
+      "reward": {
+        "count": 3,
+        "fragment": "common"
+      }
+    },
+    {
+      "name": "Treasure Hunt with Clan members 10 times",
+      "counter": "member",
+      "threshold": 10,
+      "reward": {
+        "count": 5,
+        "fragment": "common"
+      }
+    },
+    {
+      "name": "Treasure Hunt with Clan members 15 times",
+      "counter": "member",
+      "threshold": 15,
+      "reward": {
+        "count": 1,
+        "fragment": "epic"
+      }
+    },
+    {
+      "name": "Treasure Hunt with Clan members 20 times",
+      "counter": "member",
+      "threshold": 20,
+      "reward": {
+        "count": 2,
+        "fragment": "epic"
+      }
+    }
+  ]
+}
