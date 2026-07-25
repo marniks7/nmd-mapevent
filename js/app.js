@@ -4,6 +4,7 @@ const { projectShopStrategy } = require('./shop-strategy');
 const state = {
   config: null,
   projectedDailyInventory: [],
+  mobileInventoryDay: null,
 };
 
 const mapLabels = {
@@ -196,19 +197,7 @@ function renderDailyInventoryTable() {
     </div>
   `);
 
-  for (let day = 1; day <= eventDays; day += 1) {
-    rows.push(`
-      <div class="daily-row" data-day="${day}">
-        <strong>End ${day}</strong>
-        ${inventoryFields.map(([bucket, key]) => numberInput(day, bucket, key)).join('')}
-        ${weeklyFields.map(([bucket, key]) => weeklyNumberInput(day, bucket, key)).join('')}
-        ${mythicalFields.map(([bucket, key]) => checkboxInput(day, bucket, key)).join('')}
-        ${allQuestsInput(day)}
-        <span id="quest-${day}" class="quest-cell readonly-cell group-start">-</span>
-        ${runLevels.map((level, index) => `<span id="runs-${day}-${level}" class="run-cell readonly-cell ${levelClass(level)}${index === 0 ? ' group-start' : ''}">0</span>`).join('')}
-      </div>
-    `);
-  }
+  for (let day = 1; day <= eventDays; day += 1) rows.push(renderDailyInventoryRow(day));
 
   rows.push(renderUnusedRow());
 
@@ -217,6 +206,72 @@ function renderDailyInventoryTable() {
   updateQuestColumnVisibility();
   updateRunColumnVisibility();
   updateDailyRowVisibility();
+}
+
+function inventoryFieldLabel(bucket, key) {
+  if (bucket === 'shards') {
+    if (key === 'elemental') return 'Elemental total';
+    return key === 'universal' ? 'Universal' : key[0].toUpperCase() + key.slice(1);
+  }
+  if (bucket === 'maps') return `${mapLabels[key]} maps`;
+  if (bucket === 'fragments') {
+    const label = key === 'random' ? 'Random' : mapLabels[key];
+    return `${label} fragments`;
+  }
+  if (key === 'divineFragmentsReceived') return 'Weekly Divine fragments';
+  return 'Weekly Divine member runs';
+}
+
+function mobileNumberField(day, bucket, key, inputHtml) {
+  const classes = ['mobile-inventory-field'];
+  if (bucket === 'shards' && specificElementKeys.includes(key)) classes.push('specific-element-cell');
+  return `
+    <label class="${classes.join(' ')}">
+      <span class="mobile-inventory-field-label">${inventoryFieldLabel(bucket, key)}</span>
+      ${inputHtml}
+    </label>
+  `;
+}
+
+function mobileReadonlyField(label, content, classes = '') {
+  return `
+    <div class="mobile-inventory-readonly ${classes}">
+      <span class="mobile-inventory-field-label">${label}</span>
+      ${content}
+    </div>
+  `;
+}
+
+function renderDailyInventoryRow(day) {
+  return `
+    <div class="daily-row" data-day="${day}">
+      <strong class="daily-day-label">End ${day}</strong>
+      <section class="daily-field-group daily-shard-group">
+        <h3>Shards</h3>
+        ${shardKeys.map((key) => mobileNumberField(day, 'shards', key, numberInput(day, 'shards', key))).join('')}
+      </section>
+      <section class="daily-field-group daily-map-group">
+        <h3>Maps</h3>
+        ${['common', 'epic', 'superior', 'divine'].map((key) => mobileNumberField(day, 'maps', key, numberInput(day, 'maps', key))).join('')}
+      </section>
+      <section class="daily-field-group daily-fragment-group">
+        <h3>Fragments</h3>
+        ${['common', 'epic', 'superior', 'divine', 'random'].map((key) => mobileNumberField(day, 'fragments', key, numberInput(day, 'fragments', key))).join('')}
+      </section>
+      <section class="daily-field-group daily-progress-group">
+        <h3>Progress</h3>
+        ${weeklyFields.map(([bucket, key]) => mobileNumberField(day, bucket, key, weeklyNumberInput(day, bucket, key))).join('')}
+        ${mythicalFields.map(([bucket, key]) => checkboxInput(day, bucket, key)).join('')}
+        ${allQuestsInput(day)}
+        ${mobileReadonlyField('Quest rewards', `<span id="quest-${day}" class="quest-cell readonly-cell group-start">-</span>`, 'quest-cell')}
+        ${runLevels.map((level, index) => mobileReadonlyField(
+    `${mapLabels[level]} runs`,
+    `<span id="runs-${day}-${level}" class="run-cell readonly-cell ${levelClass(level)}${index === 0 ? ' group-start' : ''}">0</span>`,
+    `run-cell ${levelClass(level)}`,
+  )).join('')}
+      </section>
+    </div>
+  `;
 }
 
 function renderUnusedRow() {
@@ -262,8 +317,10 @@ function weeklyNumberInput(day, bucket, key) {
 
 function checkboxInput(day, bucket, key) {
   const groupClass = key === 'ownerDone' ? ' group-start' : '';
+  const label = key === 'ownerDone' ? 'Mythical owner' : 'Mythical member';
   return `
     <label class="daily-check myth-cell${groupClass}" for="${fieldId(day, bucket, key)}">
+      <b class="mobile-inventory-field-label">${label}</b>
       <input id="${fieldId(day, bucket, key)}" data-day="${day}" data-bucket="${bucket}" data-key="${key}" type="checkbox">
       <span>Claimed</span>
     </label>
@@ -273,6 +330,7 @@ function checkboxInput(day, bucket, key) {
 function allQuestsInput(day) {
   return `
     <label class="daily-check quest-claim-cell group-start" for="${fieldId(day, 'quests', 'allClaimed')}">
+      <b class="mobile-inventory-field-label">All quests</b>
       <input id="${fieldId(day, 'quests', 'allClaimed')}" data-day="${day}" data-bucket="quests" data-key="allClaimed" type="checkbox">
       <span>Claimed</span>
     </label>
@@ -738,6 +796,12 @@ function bindEvents() {
   document.getElementById('downloadButton').addEventListener('click', downloadState);
   document.getElementById('uploadButton').addEventListener('click', () => document.getElementById('uploadInput').click());
   document.getElementById('uploadInput').addEventListener('change', uploadState);
+  document.getElementById('mobileInventoryPreviousDay').addEventListener('click', () => {
+    setMobileInventoryDay((state.mobileInventoryDay || 1) - 1);
+  });
+  document.getElementById('mobileInventoryNextDay').addEventListener('click', () => {
+    setMobileInventoryDay((state.mobileInventoryDay || 1) + 1);
+  });
 }
 
 function updateSpecificElementVisibility() {
@@ -757,10 +821,46 @@ function updateDailyRowVisibility(currentDay) {
   const activeDay = currentDay ?? currentEventDay(eventDays);
   const showPrevious = Boolean(document.getElementById('showPreviousInventoryRows')?.checked);
   const showFuture = Boolean(document.getElementById('showFutureInventoryRows')?.checked);
+  const mobileLayout = window.matchMedia('(max-width: 760px)').matches;
+  if (!Number.isFinite(state.mobileInventoryDay)) state.mobileInventoryDay = activeDay;
+  state.mobileInventoryDay = Math.round(clamp(state.mobileInventoryDay, 1, eventDays));
   document.querySelectorAll('#dailyInventoryTable .daily-row[data-day]').forEach((row) => {
     const day = Number(row.dataset.day);
-    row.hidden = (day < activeDay && !showPrevious) || (day > activeDay && !showFuture);
+    const mobileSelected = mobileLayout && day === state.mobileInventoryDay;
+    row.classList.toggle('mobile-selected-day', mobileSelected);
+    row.hidden = mobileLayout
+      ? !mobileSelected
+      : (day < activeDay && !showPrevious) || (day > activeDay && !showFuture);
   });
+  updateMobileInventoryNavigation(activeDay, eventDays);
+}
+
+function updateMobileInventoryNavigation(activeDay, eventDays) {
+  const selectedDay = state.mobileInventoryDay;
+  const dayData = state.projectedDailyInventory[selectedDay];
+  const status = [
+    selectedDay === activeDay ? 'Current day' : selectedDay < activeDay ? 'Previous day' : 'Future day',
+    dayData?.isManual ? 'Entered balances' : 'Projected balances',
+    isWeeklyResetStart(selectedDay) ? 'Weekly reset' : '',
+  ].filter(Boolean);
+  document.getElementById('mobileInventoryDayLabel').textContent =
+    `End of day ${formatNumber.format(selectedDay)} / ${formatNumber.format(eventDays)}`;
+  document.getElementById('mobileInventoryDayStatus').textContent = status.join(' · ');
+  document.getElementById('mobileInventoryDayProgress').style.width =
+    `${Math.min(100, (selectedDay / eventDays) * 100)}%`;
+  document.getElementById('mobileInventoryPreviousDay').disabled = selectedDay <= 1;
+  document.getElementById('mobileInventoryNextDay').disabled = selectedDay >= eventDays;
+}
+
+function setMobileInventoryDay(day) {
+  const eventDays = Math.max(1, numberValue('eventDays', state.config.seasons.summer.defaultDays));
+  state.mobileInventoryDay = Math.round(clamp(day, 1, eventDays));
+  updateDailyRowVisibility();
+}
+
+function initializeMobileInventoryEditor() {
+  const mobileQuery = window.matchMedia('(max-width: 760px)');
+  mobileQuery.addEventListener('change', () => updateDailyRowVisibility());
 }
 
 function resetEntries() {
@@ -1879,6 +1979,7 @@ async function boot() {
     updateRunColumnVisibility();
     updateStaticConfigStatus();
     bindEvents();
+    initializeMobileInventoryEditor();
     calculateProjection();
     saveAppState();
   } catch (error) {

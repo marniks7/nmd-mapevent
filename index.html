@@ -194,6 +194,15 @@
         </div>
       </div>
       <div class="table-hint" id="inventoryTableHelp">Enter the balances you actually have at the end of a day. An entered value replaces that day’s estimate and recalculates every following day. Values shown in gray are projected balances; leave a cell empty to use its projection.</div>
+      <div class="mobile-inventory-nav" aria-label="Selected inventory day">
+        <button id="mobileInventoryPreviousDay" class="mobile-day-button" type="button" aria-label="Previous inventory day">‹</button>
+        <div class="mobile-day-summary">
+          <strong id="mobileInventoryDayLabel">End of day</strong>
+          <small id="mobileInventoryDayStatus">Current day · Projected balances</small>
+          <div class="mobile-day-progress" aria-hidden="true"><span id="mobileInventoryDayProgress"></span></div>
+        </div>
+        <button id="mobileInventoryNextDay" class="mobile-day-button" type="button" aria-label="Next inventory day">›</button>
+      </div>
       <div class="daily-table-wrap">
         <div class="daily-table" id="dailyInventoryTable" aria-describedby="inventoryTableHelp"></div>
       </div>
