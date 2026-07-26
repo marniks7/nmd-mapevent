@@ -267,9 +267,10 @@ test('best-target strategy trims paid items until converted leftovers are minima
     projectionCalls += 1;
     return projectEvent(options);
   };
+  let projection;
   let result;
   try {
-    result = shopStrategy.projectShopStrategy(
+    projection = shopStrategy.projectShopStrategy(
       calculationOptions,
       shopOptions({
         strategy: 3,
@@ -280,7 +281,8 @@ test('best-target strategy trims paid items until converted leftovers are minima
         buyJadeMaps: true,
       }),
       targets,
-    ).result;
+    );
+    result = projection.result;
   } finally {
     engine.projectEvent = projectEvent;
   }
@@ -308,6 +310,35 @@ test('best-target strategy trims paid items until converted leftovers are minima
   assert.deepEqual(fittingBudgetResult.shop.all.targetFragments, result.shop.all.targetFragments);
   assert.deepEqual(fittingBudgetResult.shop.all.targetMaps, result.shop.all.targetMaps);
   assert.deepEqual(fittingBudgetResult.conversion.rewards, result.conversion.rewards);
+
+  const withoutFutureRandom = engine.projectEvent({
+    ...calculationOptions,
+    randomFragmentsPerDay: (day) => (day <= calculationOptions.currentDay ? 19 : 0),
+    shopOptions: { enabled: false, strategy: 0 },
+  });
+  const targetPlan = engine.targetPlanBreakdown({
+    config,
+    result,
+    withoutShop: projection.withoutShop,
+    withoutFutureRandom,
+  });
+  const sourceRows = [
+    targetPlan.now,
+    targetPlan.dailies,
+    targetPlan.luckyRewards,
+    targetPlan.randomFragments,
+    targetPlan.ownMaps,
+    targetPlan.shop,
+    targetPlan.mythical,
+  ];
+
+  assert.equal(targetPlan.shop.jades, 1578);
+  ['universal', 'elemental'].forEach((kind) => {
+    assert.equal(
+      sourceRows.reduce((sum, row) => sum + row.rewards[kind], 0),
+      targetPlan.total.rewards[kind],
+    );
+  });
 });
 
 test('target fragment limit avoids paid leftovers without losing a map run', () => {

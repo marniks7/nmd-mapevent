@@ -29,6 +29,48 @@ test('default projection produces stable final totals and conversion', () => {
   assert.equal(result.finalInventory.shards.universal, 1537);
 });
 
+test('target plan source rows reconcile to the projection totals', () => {
+  const result = defaultProjection();
+  const withoutFutureRandom = defaultProjection({
+    randomFragmentsPerDay: (day) => (day <= 3 ? 19 : 0),
+  });
+  const plan = engine.targetPlanBreakdown({
+    config,
+    result,
+    withoutShop: result,
+    withoutFutureRandom,
+  });
+  const sourceRows = [
+    plan.now,
+    plan.dailies,
+    plan.luckyRewards,
+    plan.randomFragments,
+    plan.ownMaps,
+    plan.shop,
+    plan.mythical,
+  ];
+
+  assert.deepEqual(withoutFutureRandom.currentInventory, result.currentInventory);
+  ['universal', 'elemental'].forEach((kind) => {
+    assert.equal(
+      sourceRows.reduce((sum, row) => sum + row.rewards[kind], 0),
+      plan.total.rewards[kind],
+    );
+  });
+  ['common', 'epic', 'superior', 'divine'].forEach((level) => {
+    assert.equal(
+      plan.now.maps[level]
+        + plan.dailies.maps[level]
+        + plan.randomFragments.maps[level]
+        + plan.ownMaps.maps[level]
+        + plan.shop.maps[level],
+      plan.total.maps[level],
+    );
+  });
+  assert.ok(plan.randomFragments.maps.common > 0);
+  assert.equal(plan.shop.jades, 0);
+});
+
 test('Divine fragments craft one map and leave the correct remainder', () => {
   const inventory = engine.emptyInventory();
   inventory.fragments.divine = 19;

@@ -1167,16 +1167,6 @@ function restoreAndRender(saved) {
   saveAppState();
 }
 
-function questRewardText(questRewards) {
-  const ticketText = ['common', 'epic', 'superior', 'divine', 'random']
-    .filter((key) => questRewards.tickets[key] > 0)
-    .map((key) => `${mapLabels[key] || 'Random'} map x${formatNumber.format(questRewards.tickets[key])}`);
-  const fragmentText = ['common', 'epic', 'superior', 'divine', 'random']
-    .filter((key) => questRewards.fragments[key] > 0)
-    .map((key) => `${mapLabels[key] || 'Random'} fragment x${formatNumber.format(questRewards.fragments[key])}`);
-  return [...ticketText, ...fragmentText].join(', ') || 'None';
-}
-
 function updateDailyPlaceholders(days) {
   const currentDay = currentEventDay(days.length - 1);
   days.forEach((dayData, day) => {
@@ -1277,7 +1267,9 @@ function updateShopProjection(shop, contribution, targetStatus) {
   document.getElementById('shopRemainingBreakdown').textContent = `${formatNumber.format(remaining.jadeSpent.purchases)} for purchases + ${formatNumber.format(remaining.jadeSpent.resets)} for resets`;
   document.getElementById('shopTotalJades').textContent = formatNumber.format(entire.jadeSpent.total);
   document.getElementById('shopEntireBreakdown').textContent = `${formatNumber.format(entire.jadeSpent.purchases)} for purchases + ${formatNumber.format(entire.jadeSpent.resets)} for resets`;
-  document.getElementById('shopBudgetRemaining').textContent = shop.jadeBudget === null
+  const budgetIsUnlimited = shop.jadeBudget === null;
+  document.querySelector('.budget-left-card')?.classList.toggle('is-unlimited', budgetIsUnlimited);
+  document.getElementById('shopBudgetRemaining').textContent = budgetIsUnlimited
     ? 'Unlimited'
     : formatNumber.format(shop.jadeBudgetRemaining);
 
@@ -1318,18 +1310,22 @@ function updateShopProjection(shop, contribution, targetStatus) {
   );
   if (hasJadeFragmentPurchases || hasRandomCurrencyPurchases) {
     const fragmentPurchaseNotes = [];
-    if (hasJadeFragmentPurchases) fragmentPurchaseNotes.push('Main quantities use jades');
+    if (hasJadeFragmentPurchases) {
+      fragmentPurchaseNotes.push(hasRandomCurrencyPurchases
+        ? 'Use jades for the rest'
+        : 'Use jades for all of these');
+    }
     if (hasRandomCurrencyPurchases) {
       fragmentPurchaseNotes.push(
-        `${formatNumber.format(remaining.randomFragmentsSpent)} random fragments for the secondary quantities`,
+        `${formatNumber.format(remaining.randomFragmentsSpent)} random fragments required`,
       );
     }
     actionCards.push(`
       <article class="shop-action-card">
         <span>Fragments to buy</span>
         <strong>
-          ${hasJadeFragmentPurchases ? shopItemSummary(remaining.jadeFragments, shopFragmentLevels, 'fragments') : ''}
-          ${hasRandomCurrencyPurchases ? `<em class="shop-action-secondary">With random fragments: ${shopItemSummary(remaining.randomCurrencyFragments, shopFragmentLevels, 'fragments')}</em>` : ''}
+          ${shopItemSummary(remaining.targetFragments, shopFragmentLevels, 'fragments')}
+          ${hasRandomCurrencyPurchases ? `<em class="shop-action-secondary">Including purchases with random fragments: ${shopItemSummary(remaining.randomCurrencyFragments, shopFragmentLevels, 'fragments')}</em>` : ''}
         </strong>
         <small>${fragmentPurchaseNotes.join(' · ')}</small>
       </article>
@@ -1660,26 +1656,6 @@ function collectManualEntries(eventDays) {
   return entries;
 }
 
-function conversionText(conversion) {
-  const changes = [];
-  if (conversion.universalGain > 0) {
-    changes.push(`elemental -> universal: -${formatNumber.format(conversion.elementalSpent)} elemental, +${formatNumber.format(conversion.universalGain)} universal`);
-  }
-  if (conversion.elementalGain > 0) {
-    changes.push(`universal -> elemental: -${formatNumber.format(conversion.universalSpent)} universal, +${formatNumber.format(conversion.elementalGain)} elemental`);
-  }
-  return changes.join('; ') || 'no conversion needed';
-}
-
-function engineConversionScenarios(result) {
-  const scenarios = result.conversionScenarios;
-  return [
-    { label: 'Projected total without conversion', rewards: scenarios.withoutConversion, detail: 'Current inventory plus projected future gains' },
-    { label: 'Convert elemental to universal', rewards: scenarios.toUniversal.rewards, detail: scenarios.toUniversal.universalGain > 0 ? `uses ${formatNumber.format(scenarios.toUniversal.elementalSpent)} elemental for ${formatNumber.format(scenarios.toUniversal.universalGain)} universal` : 'no useful conversion available' },
-    { label: 'Convert universal to elemental', rewards: scenarios.toElemental.rewards, detail: scenarios.toElemental.elementalGain > 0 ? `uses ${formatNumber.format(scenarios.toElemental.universalSpent)} universal for ${formatNumber.format(scenarios.toElemental.elementalGain)} elemental` : 'no useful conversion available' },
-  ];
-}
-
 function projectionShopContribution(result, withoutShop) {
   return {
     universal: result.rawRewards.universal - withoutShop.rawRewards.universal,
@@ -1852,6 +1828,20 @@ function calculateProjection() {
     targets,
   );
   const result = remainingProjection.result;
+  const withoutFutureRandom = CalculationEngine.projectEvent({
+    ...calculationOptions,
+    randomFragmentsPerDay: (day) => (
+      day <= currentDay ? calculationConfig.crafting.randomFragmentsPerDay : 0
+    ),
+    shopOptions: { ...shopOptions, enabled: false, strategy: 0 },
+  });
+  const targetPlan = CalculationEngine.targetPlanBreakdown({
+    config: calculationConfig,
+    result,
+    withoutShop: remainingProjection.withoutShop,
+    withoutFutureRandom,
+    randomStrategy: calculationOptions.randomStrategy,
+  });
   const entireEventProjection = shopOptions.enabled
     ? projectShopStrategy(
       { ...calculationOptions, currentDay: 1, manualEntries: {} },
@@ -1884,43 +1874,14 @@ function calculateProjection() {
   updateShopProjection(shopProjection, shopContribution, shopTargetStatus);
   syncMythicalIncludeControls(result.finalInventory);
 
-  const conversion = { ...result.conversion, text: conversionText(result.conversion) };
-  const totalRuns = state.config.mapLevels.reduce((sum, level) => sum + result.futureRuns.own[level] + result.futureRuns.member[level], 0);
-  const randomMaps = result.days.slice(currentDay + 1).reduce((sum, day) => sum + (day?.crafted.random || 0), 0);
-  const expectedLuckyElemental = result.luckyRewards.remainingElemental;
-  const divineFragments = {
-    projected: result.totalDivineWeeklyFragments,
-    weeklyCap: calculationConfig.fragmentRules.divine.weeklyCap,
-    weekBuckets: result.totalWeekBuckets,
-  };
-
-  updateSummary(result.conversion.rewards, result.rawRewards, targets, result.daysRemaining, eventDays, result.remainingWeekBuckets, conversion);
+  updateSummary(result.conversion.rewards, result.rawRewards, targets, result.daysRemaining, eventDays, result.remainingWeekBuckets);
   updateUnusedRow(eventDays, result.finalInventory);
   updateProjectionList({
-    rawProjectedRewards: result.rawRewards,
-    projectedRewards: result.conversion.rewards,
-    conversion,
-    conversionScenarios: engineConversionScenarios(result),
+    plan: targetPlan,
     targets,
-    random: { randomMaps },
-    questRewards: result.questRewards,
-    divineFragments,
-    expectedLuckyElemental,
-    luckyRewards: {
-      ...result.luckyRewards,
-      automatic: luckyRewardCutoff.automatic,
-      automaticDays: luckyRewardCutoff.automaticDays,
-      lastResetDay: luckyRewardCutoff.lastResetDay,
-    },
-    daysRemaining: result.daysRemaining,
     currentDay,
     dayIsManual: result.days[currentDay]?.isManual,
-    inventory: result.currentInventory,
-    futureRewards: result.futureRewards,
-    totalRuns,
-    craftedTotal: result.craftedTotal,
   });
-  updateBreakdown(result.futureRuns.own, result.futureRuns.member);
   updateStatus(currentDay, eventDays, result.currentGameDayEndUtc);
 }
 
@@ -1969,7 +1930,7 @@ function updateUnusedRow(eventDays, currentInventory) {
   if (weeklyFragmentsCell) weeklyFragmentsCell.textContent = `${currentInventory.weekly.divineFragmentsReceived}/${divineFragmentWeeklyCap()}`;
   if (weeklyRunsCell) weeklyRunsCell.textContent = `${currentInventory.weekly.divineMemberRunsFinished}/${divineMemberWeeklyCap()}`;
 }
-function updateSummary(rewards, rawRewards, targets, days, totalDays, weeks, conversion) {
+function updateSummary(rewards, rawRewards, targets, days, totalDays, weeks) {
   document.getElementById('universalProjected').textContent = `${formatNumber.format(rewards.universal)}/${formatNumber.format(targets.universal)}`;
   document.getElementById('elementalProjected').textContent = `${formatNumber.format(rewards.elemental)}/${formatNumber.format(targets.elemental)}`;
   document.getElementById('daysRemaining').textContent = `${formatNumber.format(days)}/${formatNumber.format(totalDays)}`;
@@ -2003,90 +1964,159 @@ function setTargetCardState(card, projected, target) {
   else if (delta > target * 0.2) card.classList.add('target-surplus');
   else card.classList.add('target-met');
 }
-function updateProjectionList(details) {
-  const universalGap = details.projectedRewards.universal - details.targets.universal;
-  const elementalGap = details.projectedRewards.elemental - details.targets.elemental;
-  const luckyCutoffSource = details.luckyRewards.automatic
-    ? 'automatic from final reset'
-    : 'custom override';
-  const luckyRewardSchedule = details.luckyRewards.lastRewardDay > 0
-    ? `${formatNumber.format(details.luckyRewards.perDay)}/day through Day ${formatNumber.format(details.luckyRewards.lastRewardDay)} · ${details.luckyRewards.cutoffDays > 0 ? `0/day on the final ${plural(details.luckyRewards.cutoffDays, 'day')}` : 'no final cutoff'} · ${luckyCutoffSource}`
-    : `0/day for the full event · ${luckyCutoffSource}`;
 
-  document.getElementById('projectionList').innerHTML = `
-    <section class="projection-section">
-      <h3>Current inventory</h3>
-      <div class="projection-section-lines">
-        <div class="result-line"><span>Based on</span><strong>${details.dayIsManual ? `End ${details.currentDay} entry` : `End ${details.currentDay} projection`}</strong></div>
-        <div class="result-line"><span>Universal now</span><strong>${formatNumber.format(details.inventory.shards.universal)}</strong></div>
-        <div class="result-line"><span>Elemental now</span><strong>${formatNumber.format(elementalTotal(details.inventory.shards))}</strong></div>
-      </div>
-    </section>
-    <section class="projection-section">
-      <h3>Still to gain</h3>
-      <div class="projection-section-lines">
-        <div class="result-line"><span>Universal</span><strong>${formatNumber.format(details.futureRewards.universal)}</strong></div>
-        <div class="result-line"><span>Elemental</span><strong>${formatNumber.format(details.futureRewards.elemental)}</strong></div>
-        <div class="result-line">
-          <span>Lucky elemental</span>
-          <strong>${formatNumber.format(details.expectedLuckyElemental)} projected<small>${luckyRewardSchedule}</small></strong>
-        </div>
-      </div>
-    </section>
-    <section class="projection-section">
-      <h3>Projected event activity</h3>
-      <div class="projection-section-lines">
-        <div class="result-line"><span>Map runs remaining</span><strong>${formatNumber.format(details.totalRuns)}</strong></div>
-        <div class="result-line">
-          <span>Maps crafted from fragments</span>
-          <strong>${formatNumber.format(details.craftedTotal)}<small>${formatNumber.format(details.random.randomMaps)} from random fragments</small></strong>
-        </div>
-        <div class="result-line">
-          <span>Quest rewards for the event</span>
-          <strong>${questRewardText(details.questRewards)}<small>${plural(details.questRewards.completed.length, 'quest milestone')} projected</small></strong>
-        </div>
-        <div class="result-line">
-          <span>Divine fragments for the event</span>
-          <strong>${formatNumber.format(details.divineFragments.projected)} projected<small>${formatNumber.format(details.divineFragments.weeklyCap)} per week × ${formatNumber.format(details.divineFragments.weekBuckets)} active weekly periods</small></strong>
-        </div>
-      </div>
-    </section>
-    <section class="projection-section">
-      <h3>Target outcome</h3>
-      <div class="projection-section-lines">
-        <div class="result-line"><span>Conversion used</span><strong>${details.conversion.text}</strong></div>
-        <div class="result-line"><span>Universal target</span><strong class="${universalGap >= 0 ? 'positive' : 'negative'}">${targetText(details.projectedRewards.universal, details.targets.universal, details.rawProjectedRewards.universal, 'universal')}</strong></div>
-        <div class="result-line"><span>Elemental target</span><strong class="${elementalGap >= 0 ? 'positive' : 'negative'}">${targetText(details.projectedRewards.elemental, details.targets.elemental, details.rawProjectedRewards.elemental, 'elemental')}</strong></div>
-      </div>
-    </section>
-    <details class="projection-details">
-      <summary>Compare conversion options</summary>
-      <div class="projection-details-content">
-        ${details.conversionScenarios.map((scenario) => `
-          <div class="result-line conversion-line">
-            <span>${scenario.label}</span>
-            <strong>${formatNumber.format(scenario.rewards.universal)} universal / ${formatNumber.format(scenario.rewards.elemental)} elemental<small>${scenario.detail}</small></strong>
-          </div>
-        `).join('')}
-      </div>
-    </details>
+function formatPlanContribution(value, isStartingValue = false) {
+  if (isStartingValue || value === 0) return formatNumber.format(value);
+  const sign = value > 0 ? '+' : '−';
+  return `${sign}${formatNumber.format(Math.abs(value))}`;
+}
+
+function formatPlanMaps(maps) {
+  return shopMapLevels.map((level) => formatNumber.format(maps[level] || 0)).join('/');
+}
+
+function targetPlanRow(label, detail, source, options = {}) {
+  return `
+    <tr>
+      <th scope="row">
+        <strong>${label}</strong>
+        <small>${detail}</small>
+      </th>
+      <td data-label="Universal">${formatPlanContribution(source.rewards.universal, options.isStartingValue)}</td>
+      <td data-label="Elemental">${formatPlanContribution(source.rewards.elemental, options.isStartingValue)}</td>
+      <td data-label="Maps C/E/S/D">
+        <span class="target-plan-maps">${formatPlanMaps(source.maps)}</span>
+        ${options.mapNote ? `<small>${options.mapNote}</small>` : ''}
+      </td>
+    </tr>
   `;
 }
 
-function updateBreakdown(ownRuns, memberRuns) {
-  document.getElementById('breakdownTable').innerHTML = `
-    <div class="table-row table-head">
-      <span>Level</span>
-      <span>Own runs</span>
-      <span>Member runs</span>
+function targetPlanOutcome(plan, targets) {
+  const missing = [];
+  if (plan.total.convertedRewards.universal < targets.universal) {
+    missing.push(`${formatNumber.format(targets.universal - plan.total.convertedRewards.universal)} universal`);
+  }
+  if (plan.total.convertedRewards.elemental < targets.elemental) {
+    missing.push(`${formatNumber.format(targets.elemental - plan.total.convertedRewards.elemental)} elemental`);
+  }
+  if (missing.length > 0) {
+    return {
+      covered: false,
+      title: 'Target still short',
+      detail: `${missing.join(' and ')} missing after every listed source.`,
+    };
+  }
+
+  const extra = [];
+  if (plan.total.convertedRewards.universal > targets.universal) {
+    extra.push(`${formatNumber.format(plan.total.convertedRewards.universal - targets.universal)} universal`);
+  }
+  if (plan.total.convertedRewards.elemental > targets.elemental) {
+    extra.push(`${formatNumber.format(plan.total.convertedRewards.elemental - targets.elemental)} elemental`);
+  }
+  return {
+    covered: true,
+    title: 'Target reached',
+    detail: extra.length > 0
+      ? `${extra.join(' and ')} extra after conversion.`
+      : 'Both shard targets are covered exactly.',
+  };
+}
+
+function updateProjectionList(details) {
+  const {
+    plan,
+    targets,
+  } = details;
+  const outcome = targetPlanOutcome(plan, targets);
+  const mythicalCount = plan.mythical.maps.own + plan.mythical.maps.member;
+  const mythicalMapText = mythicalCount > 0
+    ? `${formatNumber.format(plan.mythical.maps.own)} own + ${formatNumber.format(plan.mythical.maps.member)} member Mythical`
+    : 'No Mythical runs included';
+  const totalMythicalText = plan.total.mythicalMaps > 0
+    ? `+ ${plural(plan.total.mythicalMaps, 'Mythical run')}`
+    : 'No Mythical runs';
+
+  document.getElementById('projectionList').innerHTML = `
+    <div class="target-plan-outcome ${outcome.covered ? 'is-covered' : 'is-missing'}">
+      <strong>${outcome.title}</strong>
+      <span>${outcome.detail}</span>
     </div>
-    ${state.config.mapLevels.map((level) => `
-      <div class="table-row">
-        <strong>${mapLabels[level]}</strong>
-        <span>${formatNumber.format(ownRuns[level])}</span>
-        <span>${formatNumber.format(memberRuns[level])}</span>
-      </div>
-    `).join('')}
+    <div class="target-plan-table-wrap">
+      <table class="target-plan-table">
+        <caption class="visually-hidden">Shard sources and map runs needed to reach the selected targets</caption>
+        <thead>
+          <tr>
+            <th scope="col">Source</th>
+            <th scope="col">Universal</th>
+            <th scope="col">Elemental</th>
+            <th scope="col">Maps <small>C/E/S/D</small></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${targetPlanRow(
+    'Now',
+    `${details.dayIsManual ? `End Day ${details.currentDay} entry` : `End Day ${details.currentDay} projection`} · held maps and complete fragment sets used`,
+    plan.now,
+    { isStartingValue: true },
+  )}
+          ${targetPlanRow(
+    'Dailies',
+    'Remaining member map rewards',
+    plan.dailies,
+  )}
+          ${targetPlanRow(
+    'Random fragments',
+    'Crafted using the selected Random Map Craft strategy',
+    plan.randomFragments,
+  )}
+          ${targetPlanRow(
+    'Own maps',
+    'Crafted from regular, weekly Divine, and quest rewards',
+    plan.ownMaps,
+  )}
+          ${targetPlanRow(
+    'Shop',
+    'Expected purchases and crafted maps',
+    plan.shop,
+    { mapNote: `+ ${plural(plan.shop.jades, 'jade')}` },
+  )}
+          ${targetPlanRow(
+    'Mythical',
+    mythicalMapText,
+    plan.mythical,
+    { mapNote: mythicalMapText },
+  )}
+          ${targetPlanRow(
+    'Lucky Rewards',
+    'Projected remaining Lucky elemental shards',
+    plan.luckyRewards,
+  )}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row">
+              <strong>Total</strong>
+              <small>After the final shard conversion</small>
+            </th>
+            <td class="${plan.total.convertedRewards.universal >= targets.universal ? 'positive' : 'negative'}" data-label="Universal">
+              <strong>${formatNumber.format(plan.total.convertedRewards.universal)}/${formatNumber.format(targets.universal)}</strong>
+              <small>${formatNumber.format(plan.total.rewards.universal)} before conversion</small>
+            </td>
+            <td class="${plan.total.convertedRewards.elemental >= targets.elemental ? 'positive' : 'negative'}" data-label="Elemental">
+              <strong>${formatNumber.format(plan.total.convertedRewards.elemental)}/${formatNumber.format(targets.elemental)}</strong>
+              <small>${formatNumber.format(plan.total.rewards.elemental)} before conversion</small>
+            </td>
+            <td data-label="Maps C/E/S/D">
+              <strong class="target-plan-maps">${formatPlanMaps(plan.total.maps)}</strong>
+              <small>${totalMythicalText}</small>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <p class="target-plan-note">Maps use Common/Epic/Superior/Divine order.</p>
   `;
 }
 

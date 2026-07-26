@@ -346,7 +346,6 @@ button:focus-visible {
 }
 
 .inventory-table,
-.breakdown-table,
 .reward-table,
 .projection-list {
   display: grid;
@@ -531,8 +530,8 @@ button:focus-visible {
   grid-template-columns: repeat(5, minmax(150px, 1fr));
 }
 
-.results-layout {
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.7fr);
+.layout-grid.results-layout {
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   margin-top: 16px;
 }
@@ -2557,6 +2556,141 @@ select:disabled {
   padding: 10px;
 }
 
+.target-plan-outcome {
+  display: grid;
+  gap: 3px;
+  border: 1px solid;
+  border-left-width: 4px;
+  border-radius: var(--radius-medium);
+  padding: 12px 14px;
+}
+
+.target-plan-outcome strong {
+  font-size: 0.96rem;
+}
+
+.target-plan-outcome span {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.target-plan-outcome.is-covered {
+  border-color: rgba(16, 124, 65, 0.34);
+  background: #f1faf5;
+  color: var(--green);
+}
+
+.target-plan-outcome.is-missing {
+  border-color: rgba(180, 35, 24, 0.34);
+  background: #fff5f3;
+  color: var(--red);
+}
+
+.target-plan-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-medium);
+  background: #ffffff;
+}
+
+.target-plan-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.target-plan-table th,
+.target-plan-table td {
+  border-bottom: 1px solid #e1e8ea;
+  padding: 11px 12px;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.target-plan-table thead th {
+  background: var(--surface-strong);
+  color: #53666d;
+  font-size: 0.69rem;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.target-plan-table thead th:first-child,
+.target-plan-table th[scope="row"] {
+  text-align: left;
+}
+
+.target-plan-table thead small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.62rem;
+}
+
+.target-plan-table tbody tr:nth-child(even) {
+  background: #f8fafb;
+}
+
+.target-plan-table tbody th {
+  width: 38%;
+  font-weight: 700;
+}
+
+.target-plan-table tbody td {
+  color: var(--ink);
+  font-size: 0.91rem;
+  font-weight: 850;
+}
+
+.target-plan-table th strong,
+.target-plan-table td strong,
+.target-plan-table th small,
+.target-plan-table td small {
+  display: block;
+}
+
+.target-plan-table th small,
+.target-plan-table td small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.target-plan-maps {
+  white-space: nowrap;
+}
+
+.target-plan-table tfoot {
+  background: #edf7f4;
+}
+
+.target-plan-table tfoot th,
+.target-plan-table tfoot td {
+  border-bottom: 0;
+  padding-top: 13px;
+  padding-bottom: 13px;
+}
+
+.target-plan-table tfoot td {
+  font-size: 0.94rem;
+}
+
+.target-plan-table tfoot td small {
+  color: var(--muted);
+}
+
+.target-plan-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .inline-fieldset,
 .summary-fieldset {
   border-color: rgba(15, 118, 110, 0.2);
@@ -2813,6 +2947,81 @@ select:disabled {
     gap: 18px;
   }
 
+  .target-plan-outcome {
+    padding: 10px 11px;
+  }
+
+  .target-plan-table-wrap {
+    overflow: hidden;
+  }
+
+  .target-plan-table {
+    table-layout: fixed;
+  }
+
+  .target-plan-table thead th:first-child {
+    width: 22%;
+  }
+
+  .target-plan-table thead th:nth-child(2),
+  .target-plan-table thead th:nth-child(3) {
+    width: 24%;
+  }
+
+  .target-plan-table thead th:last-child {
+    width: 30%;
+  }
+
+  .target-plan-table th,
+  .target-plan-table td,
+  .target-plan-table tfoot th,
+  .target-plan-table tfoot td {
+    padding: 7px 4px;
+  }
+
+  .target-plan-table thead th {
+    font-size: 0.55rem;
+    letter-spacing: 0.015em;
+  }
+
+  .target-plan-table thead small {
+    font-size: 0.52rem;
+  }
+
+  .target-plan-table tbody th,
+  .target-plan-table tbody td,
+  .target-plan-table tfoot th,
+  .target-plan-table tfoot td {
+    font-size: clamp(0.58rem, 2.6vw, 0.74rem);
+    line-height: 1.15;
+  }
+
+  .target-plan-table tbody th {
+    width: auto;
+  }
+
+  .target-plan-table tbody th small,
+  .target-plan-table tfoot th small {
+    display: none;
+  }
+
+  .target-plan-table td {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    letter-spacing: -0.025em;
+  }
+
+  .target-plan-table td::before {
+    content: none;
+  }
+
+  .target-plan-table td small {
+    margin-top: 2px;
+    font-size: 0.52rem;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+
   .shop-plan-summary {
     grid-template-columns: auto minmax(0, 1fr);
   }
@@ -2826,6 +3035,20 @@ select:disabled {
     min-height: 0;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+
+  .entire-event-cost-card,
+  .budget-left-card.is-unlimited {
+    display: none;
+  }
+
+  .remaining-cost-card {
+    border-bottom: 0;
+  }
+
+  .budget-left-card:not(.is-unlimited) {
+    border-top: 1px solid var(--line);
+    border-bottom: 0;
   }
 
   .shop-action-card {

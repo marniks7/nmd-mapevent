@@ -238,6 +238,13 @@ function rewardForRuns(config, ownRuns, memberRuns) {
   return rewards;
 }
 
+function randomFragmentsForDay(randomFragmentsPerDay, day) {
+  const configured = typeof randomFragmentsPerDay === 'function'
+    ? randomFragmentsPerDay(day)
+    : randomFragmentsPerDay;
+  return Math.max(0, Number(configured) || 0);
+}
+
 function runOwnMapsFromInventory(config, inventory, randomStrategy = 'minimum') {
   const ownRuns = emptyRuns();
   const crafted = { common: 0, epic: 0, superior: 0, divine: 0, random: 0, total: 0 };
@@ -520,7 +527,7 @@ function questAwardsForDays(config, eventDays, randomFragmentsPerDay, randomStra
       mythical: 0,
     };
     addRunCounts(cumulative, memberRuns, true);
-    inventory.fragments.random += randomFragmentsPerDay;
+    inventory.fragments.random += randomFragmentsForDay(randomFragmentsPerDay, day);
     RETURNING_FRAGMENT_LEVELS.forEach((level) => {
       inventory.fragments[level] += memberRuns[level]
         * (Number(config.fragmentRules?.[level]?.memberRun) || 0);
@@ -743,7 +750,7 @@ function projectEvent(options) {
     const memberRuns = dailyMemberRuns(config, weeklyDivine.divineMemberRuns);
     applyMemberRuns(config, inventory, memberRuns);
     if (day <= lastLuckyRewardDay) inventory.shards.elemental += luckyElementalPerDay;
-    inventory.fragments.random += randomFragmentsPerDay;
+    inventory.fragments.random += randomFragmentsForDay(randomFragmentsPerDay, day);
     inventory.fragments.divine += weeklyDivine.divineFragmentsGained;
     awardsByDay[day].forEach((reward) => applyQuestReward(inventory, reward, randomStrategy));
     const manualShopEntry = manualShopEntries[day] || null;
@@ -908,6 +915,141 @@ function projectEvent(options) {
   };
 }
 
+function rewardDifference(left, right) {
+  return {
+    universal: left.universal - right.universal,
+    elemental: left.elemental - right.elemental,
+  };
+}
+
+function standardRunTotals(runs = {}) {
+  return Object.fromEntries(STANDARD_LEVELS.map((level) => [
+    level,
+    runs[level] || 0,
+  ]));
+}
+
+function standardRunDifference(left = {}, right = {}) {
+  return Object.fromEntries(STANDARD_LEVELS.map((level) => [
+    level,
+    (left[level] || 0) - (right[level] || 0),
+  ]));
+}
+
+function targetPlanBreakdown({
+  config,
+  result,
+  withoutShop,
+  withoutFutureRandom,
+  randomStrategy = 'minimum',
+}) {
+  const currentInventory = cloneInventory(result.currentInventory);
+  const currentLiquidation = runOwnMapsFromInventory(
+    config,
+    currentInventory,
+    randomStrategy,
+  );
+  const now = {
+    rewards: {
+      universal: currentInventory.shards.universal,
+      elemental: elementalTotal(currentInventory.shards),
+    },
+    maps: standardRunTotals(currentLiquidation.ownRuns),
+  };
+
+  const remainingMemberRuns = {
+    ...withoutFutureRandom.futureRuns.member,
+    mythical: 0,
+  };
+  const dailyMapRewards = rewardForRuns(config, emptyRuns(), remainingMemberRuns);
+  const dailies = {
+    rewards: dailyMapRewards,
+    maps: standardRunTotals(remainingMemberRuns),
+  };
+  const luckyRewards = {
+    rewards: {
+      universal: 0,
+      elemental: withoutFutureRandom.luckyRewards.remainingElemental,
+    },
+    maps: standardRunTotals(),
+  };
+
+  const mythicalRuns = {
+    own: result.projectedMythical.owner,
+    member: result.projectedMythical.member,
+  };
+  const mythical = {
+    rewards: rewardForRuns(
+      config,
+      { ...emptyRuns(), mythical: mythicalRuns.own },
+      { ...emptyRuns(), mythical: mythicalRuns.member },
+    ),
+    maps: mythicalRuns,
+  };
+
+  const randomFragments = {
+    rewards: rewardDifference(
+      withoutShop.rawRewards,
+      withoutFutureRandom.rawRewards,
+    ),
+    maps: standardRunDifference(
+      withoutShop.futureRuns.own,
+      withoutFutureRandom.futureRuns.own,
+    ),
+  };
+  const shop = {
+    rewards: rewardDifference(result.rawRewards, withoutShop.rawRewards),
+    maps: standardRunDifference(
+      result.futureRuns.own,
+      withoutShop.futureRuns.own,
+    ),
+    jades: result.shop.future.jadeSpent.total,
+  };
+  const ownMaps = {
+    rewards: {
+      universal: withoutFutureRandom.rawRewards.universal
+        - now.rewards.universal
+        - dailies.rewards.universal
+        - luckyRewards.rewards.universal
+        - mythical.rewards.universal,
+      elemental: withoutFutureRandom.rawRewards.elemental
+        - now.rewards.elemental
+        - dailies.rewards.elemental
+        - luckyRewards.rewards.elemental
+        - mythical.rewards.elemental,
+    },
+    maps: standardRunDifference(
+      withoutFutureRandom.futureRuns.own,
+      now.maps,
+    ),
+  };
+  const totalMaps = Object.fromEntries(STANDARD_LEVELS.map((level) => [
+    level,
+    now.maps[level]
+      + dailies.maps[level]
+      + randomFragments.maps[level]
+      + ownMaps.maps[level]
+      + shop.maps[level],
+  ]));
+
+  return {
+    now,
+    dailies,
+    luckyRewards,
+    randomFragments,
+    ownMaps,
+    shop,
+    mythical,
+    total: {
+      rewards: { ...result.rawRewards },
+      convertedRewards: { ...result.conversion.rewards },
+      maps: totalMaps,
+      mythicalMaps: mythicalRuns.own + mythicalRuns.member,
+    },
+    conversion: { ...result.conversion },
+  };
+}
+
 module.exports = {
   applyConversion,
   cloneInventory,
@@ -930,6 +1072,7 @@ module.exports = {
   questAwardsForDays,
   rewardForRuns,
   runOwnMapsFromInventory,
+  targetPlanBreakdown,
   buildWeeklyDivineSchedule,
   weekBuckets,
 };
