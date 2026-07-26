@@ -1430,15 +1430,6 @@ select.custom-static-value {
   text-align: right;
 }
 
-.coin-purchase-action {
-  border-left-color: #9aa7ac;
-  background: #f7f9fa;
-}
-
-.coin-purchase-action strong {
-  color: var(--muted);
-}
-
 .shop-target-warning {
   display: grid;
   gap: 7px;
@@ -1567,12 +1558,60 @@ select.custom-static-value {
 
 .shop-static-config {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
   padding: 0 14px 14px;
 }
 
 .shop-static-config > .static-config-note {
+  grid-column: 1 / -1;
+}
+
+.shop-config-group {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.shop-config-group-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px 20px;
+}
+
+.shop-config-group-heading > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.shop-config-group-heading h3,
+.shop-config-group-heading p {
+  margin: 0;
+}
+
+.shop-config-group-heading h3 {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.shop-config-group-heading p {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.shop-config-group-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.shop-config-block-wide {
   grid-column: 1 / -1;
 }
 
@@ -1586,7 +1625,7 @@ select.custom-static-value {
   background: #ffffff;
 }
 
-.shop-config-block h3 {
+.shop-config-block h4 {
   margin: 0;
   font-size: 0.88rem;
 }
@@ -1649,8 +1688,7 @@ select.custom-static-value {
 }
 
 @media (max-width: 1060px) {
-  .shop-control-fields,
-  .shop-static-config {
+  .shop-control-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1672,6 +1710,23 @@ select.custom-static-value {
     grid-template-columns: 1fr;
   }
 
+  .shop-config-group-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shop-config-block-wide {
+    grid-column: auto;
+  }
+
+  .shop-config-group-heading {
+    display: grid;
+    align-items: start;
+  }
+
+  .shop-config-group-heading p {
+    text-align: left;
+  }
+
   .shop-static-config > .static-config-note {
     grid-column: auto;
   }
@@ -1690,7 +1745,22 @@ select.custom-static-value {
     min-width: 760px;
   }
 
-  .shop-price-input-table .shop-probability-row,
+  .shop-probability-row {
+    grid-template-columns: minmax(64px, 1fr) repeat(3, minmax(50px, 0.7fr));
+    gap: 5px;
+  }
+
+  .shop-probability-head > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 0.62rem;
+    line-height: 1.2;
+  }
+
+  .shop-price-input-table .shop-probability-row {
+    min-width: 0;
+  }
+
   .shop-map-price-row {
     min-width: 390px;
   }
@@ -2381,6 +2451,27 @@ select:disabled {
   padding: 16px;
 }
 
+.lucky-cutoff-setting {
+  color: var(--muted);
+}
+
+.lucky-cutoff-setting input {
+  border-color: #cbd5d9;
+  background: #f1f4f5;
+  color: #53656c;
+}
+
+.lucky-cutoff-setting input::placeholder {
+  color: #77868c;
+  opacity: 1;
+}
+
+.lucky-cutoff-setting small {
+  color: #77868c;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
 .daily-table-wrap {
   border-color: var(--line);
   border-radius: var(--radius-medium);
@@ -2590,9 +2681,15 @@ select:disabled {
   font-size: 0.96rem;
 }
 
-.coin-purchase-action {
-  background: #f5f7f8;
-  box-shadow: inset 0 0 0 1px rgba(100, 116, 123, 0.07);
+.shop-action-secondary {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.35;
 }
 
 .shop-target-warning {
@@ -2653,8 +2750,7 @@ select:disabled {
   .layout-grid,
   .primary-fields,
   .results-layout,
-  .shop-control-fields,
-  .shop-static-config {
+  .shop-control-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -2693,6 +2789,7 @@ select:disabled {
   .shop-control-fields,
   .shop-summary-grid,
   .shop-static-config,
+  .shop-config-group-grid,
   .general-static-config {
     grid-template-columns: minmax(0, 1fr);
   }

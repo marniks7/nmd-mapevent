@@ -53,18 +53,18 @@ const shopStrategySummaryLabels = {
   3: 'Best target value',
 };
 const shopSimpleProbabilityGroups = [
-  ['jadeItemKinds', 'Items offered for jades: fragment or map', ['fragment', 'map']],
-  ['jadeFragmentLevels', 'Pay with jades: fragment rarity', shopFragmentLevels],
-  ['jadeMapLevels', 'Pay with jades: map rarity', shopMapLevels],
-  ['jadeFragmentQuantities', 'Pay with jades: fragments received', ['1', '2', '3']],
-  ['randomCurrencyLevels', 'Pay with random fragments: fragment rarity', shopMapLevels],
-  ['coinItemKinds', 'Items offered for coins: item type', ['nonEvent', 'fragment', 'map']],
-  ['coinFragmentLevels', 'Pay with coins: fragment rarity', ['common', 'random', 'epic', 'superior']],
-  ['coinMapLevels', 'Pay with coins: map rarity', shopMapLevels],
+  ['jadeItemKinds', 'Item type', ['fragment', 'map']],
+  ['jadeFragmentLevels', 'Fragment rarity', shopFragmentLevels],
+  ['jadeMapLevels', 'Map rarity', shopMapLevels],
+  ['jadeFragmentQuantities', 'Fragment bundle size', ['1', '2', '3']],
+  ['randomCurrencyLevels', 'Fragment rarity', shopMapLevels],
+  ['coinItemKinds', 'Item type', ['nonEvent', 'fragment', 'map']],
+  ['coinFragmentLevels', 'Fragment rarity', ['common', 'random', 'epic', 'superior']],
+  ['coinMapLevels', 'Map rarity', shopMapLevels],
 ];
 const shopMatrixProbabilityGroups = [
-  ['randomCurrencyQuantities', 'Pay with random fragments: fragments received', shopMapLevels],
-  ['coinFragmentQuantities', 'Pay with coins: fragments received', ['common', 'random', 'epic', 'superior']],
+  ['randomCurrencyQuantities', 'Fragment bundle size by rarity', shopMapLevels],
+  ['coinFragmentQuantities', 'Fragment bundle size by rarity', ['common', 'random', 'epic', 'superior']],
 ];
 
 const formatNumber = new Intl.NumberFormat('en-US');
@@ -599,22 +599,21 @@ function shopProbabilityInput(group, key, value) {
   `;
 }
 
-function renderShopStaticConfig() {
-  const container = document.getElementById('shopStaticConfig');
-  if (!container || !state.config?.shop) return;
-  const shop = state.config.shop;
-  const probabilities = shop.estimatedProbabilities;
-  const simpleGroups = shopSimpleProbabilityGroups.map(([group, label, keys]) => `
+function shopSimpleProbabilityBlock([group, label, keys], probabilities) {
+  return `
     <section class="shop-config-block">
-      <h3>${label} <span class="estimate-badge">Estimated</span></h3>
+      <h4>${label}</h4>
       <div class="field-grid shop-probability-fields">
         ${keys.map((key) => shopProbabilityInput(group, key, probabilities[group]?.[key] ?? 0)).join('')}
       </div>
     </section>
-  `).join('');
-  const matrixGroups = shopMatrixProbabilityGroups.map(([group, label, levels]) => `
-    <section class="shop-config-block">
-      <h3>${label} <span class="estimate-badge">Estimated</span></h3>
+  `;
+}
+
+function shopMatrixProbabilityBlock([group, label, levels], probabilities) {
+  return `
+    <section class="shop-config-block shop-config-block-wide">
+      <h4>${label}</h4>
       <div class="shop-probability-table">
         <div class="shop-probability-row shop-probability-head"><span>Rarity</span><span>1 fragment %</span><span>2 fragments %</span><span>3 fragments %</span></div>
         ${levels.map((level) => `
@@ -625,7 +624,37 @@ function renderShopStaticConfig() {
         `).join('')}
       </div>
     </section>
-  `).join('');
+  `;
+}
+
+function shopConfigGroup(title, description, blocks, estimated = false) {
+  return `
+    <section class="shop-config-group">
+      <div class="shop-config-group-heading">
+        <div>
+          <h3>${title}</h3>
+          ${estimated ? '<span class="estimate-badge">Estimated probabilities</span>' : ''}
+        </div>
+        <p>${description}</p>
+      </div>
+      <div class="shop-config-group-grid">${blocks.join('')}</div>
+    </section>
+  `;
+}
+
+function renderShopStaticConfig() {
+  const container = document.getElementById('shopStaticConfig');
+  if (!container || !state.config?.shop) return;
+  const shop = state.config.shop;
+  const probabilities = shop.estimatedProbabilities;
+  const simpleGroups = Object.fromEntries(shopSimpleProbabilityGroups.map((definition) => [
+    definition[0],
+    shopSimpleProbabilityBlock(definition, probabilities),
+  ]));
+  const matrixGroups = Object.fromEntries(shopMatrixProbabilityGroups.map((definition) => [
+    definition[0],
+    shopMatrixProbabilityBlock(definition, probabilities),
+  ]));
   const jadeFragmentPrices = `
     <div class="shop-probability-table shop-price-input-table">
       <div class="shop-probability-row shop-probability-head"><span>Rarity</span><span>1 fragment</span><span>2 fragments</span><span>3 fragments</span></div>
@@ -641,39 +670,88 @@ function renderShopStaticConfig() {
       `).join('')}
     </div>
   `;
-  const mapPrices = `
-    <div class="shop-map-price-table">
-      <div class="shop-map-price-row shop-probability-head"><span>Rarity</span><span>Jades per map</span><span>Random fragments per fragment</span></div>
+  const jadeMapPrices = `
+    <div class="field-grid shop-probability-fields">
       ${shopMapLevels.map((level) => `
-        <div class="shop-map-price-row">
-          <strong>${mapLabels[level]}</strong>
-          <input id="shop-price-jade-map-${level}" aria-label="${mapLabels[level]} map jade price" type="number" min="0" value="${shop.prices.jades.maps[level]}">
-          <input id="shop-price-random-fragment-${level}" aria-label="${mapLabels[level]} fragment random-fragment price" type="number" min="0" value="${shop.prices.randomFragments[level]}">
-        </div>
+        <label>${mapLabels[level]} map<input id="shop-price-jade-map-${level}" aria-label="${mapLabels[level]} map jade price" type="number" min="0" value="${shop.prices.jades.maps[level]}"></label>
+      `).join('')}
+    </div>
+  `;
+  const randomFragmentPrices = `
+    <div class="field-grid shop-probability-fields">
+      ${shopMapLevels.map((level) => `
+        <label>${mapLabels[level]} fragment<input id="shop-price-random-fragment-${level}" aria-label="${mapLabels[level]} fragment random-fragment price" type="number" min="0" value="${shop.prices.randomFragments[level]}"></label>
       `).join('')}
     </div>
   `;
 
   container.innerHTML = `
-    <p class="static-config-note">Percentages are normalized automatically within each group.</p>
-    <section class="shop-config-block">
-      <h3>Daily reset jade costs</h3>
-      <div class="field-grid shop-reset-fields">
-        ${(shop.resetCosts || []).map((cost, index) => `
-          <label>Reset ${index + 1}<input id="shop-reset-cost-${index + 1}" type="number" min="0" value="${cost}"></label>
-        `).join('')}
-      </div>
-    </section>
-    <section class="shop-config-block">
-      <h3>Jade prices for fragment bundles</h3>
-      ${jadeFragmentPrices}
-    </section>
-    <section class="shop-config-block">
-      <h3>Map and random-fragment prices</h3>
-      ${mapPrices}
-    </section>
-    ${simpleGroups}
-    ${matrixGroups}
+    <p class="static-config-note">Offer percentages are normalized automatically within each group.</p>
+    ${shopConfigGroup(
+    'Costs',
+    'Exact reset fees and item prices used by the planner.',
+    [
+      `
+        <section class="shop-config-block shop-config-block-wide">
+          <h4>Daily reset jade costs</h4>
+          <div class="field-grid shop-reset-fields">
+            ${(shop.resetCosts || []).map((cost, index) => `
+              <label>Reset ${index + 1}<input id="shop-reset-cost-${index + 1}" type="number" min="0" value="${cost}"></label>
+            `).join('')}
+          </div>
+        </section>
+      `,
+      `
+        <section class="shop-config-block shop-config-block-wide">
+          <h4>Jade prices for fragment bundles</h4>
+          ${jadeFragmentPrices}
+        </section>
+      `,
+      `
+        <section class="shop-config-block">
+          <h4>Jade prices for maps</h4>
+          ${jadeMapPrices}
+        </section>
+      `,
+      `
+        <section class="shop-config-block">
+          <h4>Prices paid with random fragments</h4>
+          ${randomFragmentPrices}
+        </section>
+      `,
+    ],
+  )}
+    ${shopConfigGroup(
+    'Jade-priced offer mix',
+    'Expected contents of the four jade-priced slots in each shop.',
+    [
+      simpleGroups.jadeItemKinds,
+      simpleGroups.jadeFragmentLevels,
+      simpleGroups.jadeMapLevels,
+      simpleGroups.jadeFragmentQuantities,
+    ],
+    true,
+  )}
+    ${shopConfigGroup(
+    'Random-fragment-priced offer mix',
+    'Expected fragment rarities and bundle sizes in the two random-fragment slots.',
+    [
+      simpleGroups.randomCurrencyLevels,
+      matrixGroups.randomCurrencyQuantities,
+    ],
+    true,
+  )}
+    ${shopConfigGroup(
+    'Coin-priced offer mix',
+    'Expected event and unrelated items in the single coin-priced slot.',
+    [
+      simpleGroups.coinItemKinds,
+      simpleGroups.coinFragmentLevels,
+      simpleGroups.coinMapLevels,
+      matrixGroups.coinFragmentQuantities,
+    ],
+    true,
+  )}
   `;
 }
 
@@ -714,6 +792,61 @@ function firstGameDayStartUtc() {
     `${activationDate}T${activationTime}Z`,
     state.config.eventDates.gameDayRolloverUtc,
   );
+}
+
+function resolveLuckyRewardCutoff(eventDays, config) {
+  const input = document.getElementById('luckyRewardCutoffDays');
+  const help = document.getElementById('luckyRewardCutoffHelp');
+  const label = document.getElementById('luckyElementalPerDayLabel');
+  const scheduleHelp = document.getElementById('luckyElementalScheduleHelp');
+  const resetWeekday = config.eventDates.weeklyReset.weekday;
+  const resetTime = config.eventDates.weeklyReset.timeUtc;
+  const gameDayStartUtc = firstGameDayStartUtc();
+  const lastResetDay = CalculationEngine.lastWeeklyResetDay(
+    gameDayStartUtc,
+    eventDays,
+    resetWeekday,
+    resetTime,
+  );
+  const automaticDays = CalculationEngine.finalDaysAfterLastWeeklyReset(
+    gameDayStartUtc,
+    eventDays,
+    resetWeekday,
+    resetTime,
+  );
+  const hasOverride = input.value.trim() !== '';
+  const days = hasOverride
+    ? Math.floor(clamp(Number(input.value) || 0, 0, eventDays))
+    : automaticDays;
+  const activeDays = eventDays - days;
+  input.max = String(eventDays);
+  input.placeholder = `Automatic: ${automaticDays}`;
+  if (hasOverride) input.value = String(days);
+  if (label) {
+    label.textContent = `Lucky elemental per day for ${formatNumber.format(activeDays)}/${formatNumber.format(eventDays)} days`;
+  }
+  if (scheduleHelp) {
+    const source = hasOverride
+      ? 'using your override'
+      : lastResetDay === null
+        ? 'because no weekly reset occurs during the event'
+        : `from the final weekly reset on Day ${formatNumber.format(lastResetDay)}`;
+    scheduleHelp.textContent = `The current schedule uses the daily Lucky elemental estimate for ${formatNumber.format(activeDays)}/${formatNumber.format(eventDays)} event days and uses 0 for the final ${plural(days, 'day')}, calculated ${source}.`;
+  }
+  if (help) {
+    const automaticText = lastResetDay === null
+      ? 'No weekly reset occurs during this event, so the automatic cutoff is 0.'
+      : `Automatic value: ${plural(automaticDays, 'day')} after the final reset on Day ${formatNumber.format(lastResetDay)}.`;
+    help.textContent = hasOverride
+      ? `Override: ${plural(days, 'final day')} without Lucky Rewards. ${automaticText} Clear the field to restore automatic calculation.`
+      : `${automaticText} Enter a number to override.`;
+  }
+  return {
+    days,
+    automatic: !hasOverride,
+    automaticDays,
+    lastResetDay,
+  };
 }
 
 function syncDatesFromInputs() {
@@ -894,6 +1027,7 @@ function resetConfigToDefault() {
   document.getElementById('season').value = 'summer';
   document.getElementById('eventDays').value = state.config.seasons.summer.defaultDays;
   document.getElementById('luckyElementalPerDay').value = state.config.luckyRewards?.elementalPerDay ?? 15;
+  document.getElementById('luckyRewardCutoffDays').value = '';
   document.getElementById('randomStrategy').value = 'minimum';
   document.getElementById('includeMythicalOwner').checked = true;
   document.getElementById('includeMythicalMember').checked = true;
@@ -928,7 +1062,7 @@ function collectFormState() {
     if (field.type === 'file') return;
     fields[field.id] = field.type === 'checkbox' ? field.checked : field.value;
   });
-  return { version: 8, savedAt: new Date().toISOString(), fields };
+  return { version: 9, savedAt: new Date().toISOString(), fields };
 }
 
 function saveAppState() {
@@ -1164,33 +1298,53 @@ function updateShopProjection(shop, contribution, targetStatus) {
   const entireContributionClass = contribution.entire.universal >= 0
     && contribution.entire.elemental >= 0 ? 'positive' : 'negative';
   const actionCards = [];
+  const coinItemEstimate = `${shopItemSummary(remaining.coinFragments, shopFragmentLevels, 'fragments')} · ${shopItemSummary(remaining.coinMaps, shopMapLevels, 'maps')}`;
   const coinActionCard = remaining.offers.coins > 0
     ? `
       <article class="shop-action-card coin-purchase-action">
         <span>Coin-priced items</span>
         <strong>Buy every one shown</strong>
-        <small>${formatNumber.format(remaining.offers.coins)} expected for the rest of the event</small>
+        <small>Estimated: ${coinItemEstimate} · ${formatNumber.format(remaining.offers.coins)} coin-priced slots</small>
       </article>
     `
     : '';
-  if (hasShopItems(remaining.targetFragments, shopFragmentLevels)) {
+  const hasJadeFragmentPurchases = hasShopItems(
+    remaining.jadeFragments,
+    shopFragmentLevels,
+  );
+  const hasRandomCurrencyPurchases = hasShopItems(
+    remaining.randomCurrencyFragments,
+    shopFragmentLevels,
+  );
+  if (hasJadeFragmentPurchases || hasRandomCurrencyPurchases) {
+    const fragmentPurchaseNotes = [];
+    if (hasJadeFragmentPurchases) fragmentPurchaseNotes.push('Main quantities use jades');
+    if (hasRandomCurrencyPurchases) {
+      fragmentPurchaseNotes.push(
+        `${formatNumber.format(remaining.randomFragmentsSpent)} random fragments for the secondary quantities`,
+      );
+    }
     actionCards.push(`
       <article class="shop-action-card">
         <span>Fragments to buy</span>
-        <strong>${shopItemSummary(remaining.targetFragments, shopFragmentLevels, 'fragments')}</strong>
-        <small>Buy these quantities when offered</small>
+        <strong>
+          ${hasJadeFragmentPurchases ? shopItemSummary(remaining.jadeFragments, shopFragmentLevels, 'fragments') : ''}
+          ${hasRandomCurrencyPurchases ? `<em class="shop-action-secondary">With random fragments: ${shopItemSummary(remaining.randomCurrencyFragments, shopFragmentLevels, 'fragments')}</em>` : ''}
+        </strong>
+        <small>${fragmentPurchaseNotes.join(' · ')}</small>
       </article>
     `);
   }
-  if (hasShopItems(remaining.targetMaps, shopMapLevels)) {
+  if (hasShopItems(remaining.jadeMaps, shopMapLevels)) {
     actionCards.push(`
       <article class="shop-action-card">
-        <span>Maps to buy</span>
-        <strong>${shopItemSummary(remaining.targetMaps, shopMapLevels, 'maps')}</strong>
-        <small>Buy these quantities when offered</small>
+        <span>Maps to buy with jades</span>
+        <strong>${shopItemSummary(remaining.jadeMaps, shopMapLevels, 'maps')}</strong>
+        <small>Buy these quantities when offered for jades</small>
       </article>
     `);
   }
+  if (coinActionCard) actionCards.push(coinActionCard);
   if (remaining.resets > 0) {
     actionCards.push(`
       <article class="shop-action-card">
@@ -1200,7 +1354,6 @@ function updateShopProjection(shop, contribution, targetStatus) {
       </article>
     `);
   }
-  if (coinActionCard) actionCards.push(coinActionCard);
   if (actionCards.length === 0) {
     actionCards.push(`
       <article class="shop-action-card">
@@ -1257,15 +1410,19 @@ function updateShopProjection(shop, contribution, targetStatus) {
           <h3 class="shop-results-subheading">Rest of the event</h3>
           ${shop.jadeBudget === null ? '' : `<div class="result-line"><span>Remaining jade budget</span><strong>${formatNumber.format(shop.jadeBudgetAllocated)} available · ${formatNumber.format(shop.jadeBudgetRemaining)} left after planned spending</strong></div>`}
           <div class="result-line"><span>Days and resets remaining</span><strong>${formatNumber.format(remaining.days)} days + ${formatNumber.format(remaining.resets)} resets</strong></div>
-          <div class="result-line"><span>Expected purchases, including items available for coins</span><strong>${shopItemSummary(remaining.fragments, shopFragmentLevels, 'fragments')} · ${shopItemSummary(remaining.maps, shopMapLevels, 'maps')}</strong></div>
+          <div class="result-line"><span>Purchases with jades</span><strong>${shopItemSummary(remaining.jadeFragments, shopFragmentLevels, 'fragments')} · ${shopItemSummary(remaining.jadeMaps, shopMapLevels, 'maps')}<small>${formatNumber.format(remaining.jadeSpent.purchases)} jades</small></strong></div>
+          <div class="result-line"><span>Purchases with random fragments</span><strong>${shopItemSummary(remaining.randomCurrencyFragments, shopFragmentLevels, 'fragments')}<small>${formatNumber.format(remaining.randomFragmentsSpent)} random fragments</small></strong></div>
+          <div class="result-line"><span>Estimated purchases with coins</span><strong>${shopItemSummary(remaining.coinFragments, shopFragmentLevels, 'fragments')} · ${shopItemSummary(remaining.coinMaps, shopMapLevels, 'maps')}</strong></div>
           <div class="result-line"><span>Expected unrelated items available for coins</span><strong>${formatNumber.format(remaining.coinNonEventOffers)}</strong></div>
           <div class="result-line"><span>Value from remaining purchases</span><strong class="${remainingContributionClass}">${formatNumber.format(contribution.remaining.universal)} universal · ${formatNumber.format(contribution.remaining.elemental)} elemental · ${formatNumber.format(contribution.remaining.ownRuns)} own runs</strong></div>
         </section>
         <section class="shop-results-section entire-event-results">
           <h3 class="shop-results-subheading">Entire event</h3>
           <div class="result-line"><span>Days and resets</span><strong>${formatNumber.format(entire.days)} days + ${formatNumber.format(entire.resets)} resets</strong></div>
-          <div class="result-line"><span>Fragments purchased</span><strong>${shopItemSummary(entire.fragments, shopFragmentLevels, 'fragments')}</strong></div>
-          <div class="result-line"><span>Maps purchased</span><strong>${shopItemSummary(entire.maps, shopMapLevels, 'maps')}</strong></div>
+          <div class="result-line"><span>Purchases with jades</span><strong>${shopItemSummary(entire.jadeFragments, shopFragmentLevels, 'fragments')} · ${shopItemSummary(entire.jadeMaps, shopMapLevels, 'maps')}<small>${formatNumber.format(entire.jadeSpent.purchases)} jades</small></strong></div>
+          <div class="result-line"><span>Purchases with random fragments</span><strong>${shopItemSummary(entire.randomCurrencyFragments, shopFragmentLevels, 'fragments')}<small>${formatNumber.format(entire.randomFragmentsSpent)} random fragments</small></strong></div>
+          <div class="result-line"><span>Estimated purchases with coins</span><strong>${shopItemSummary(entire.coinFragments, shopFragmentLevels, 'fragments')} · ${shopItemSummary(entire.coinMaps, shopMapLevels, 'maps')}</strong></div>
+          <div class="result-line"><span>Expected unrelated items available for coins</span><strong>${formatNumber.format(entire.coinNonEventOffers)}</strong></div>
           <div class="result-line"><span>Value from all shop purchases</span><strong class="${entireContributionClass}">${formatNumber.format(contribution.entire.universal)} universal · ${formatNumber.format(contribution.entire.elemental)} elemental · ${formatNumber.format(contribution.entire.ownRuns)} own runs</strong></div>
         </section>
       </div>
@@ -1671,6 +1828,7 @@ function calculateProjection() {
     elemental: numberValue('targetElemental', state.config.defaultTargets.elemental),
   };
   const calculationConfig = collectCalculationConfig();
+  const luckyRewardCutoff = resolveLuckyRewardCutoff(eventDays, calculationConfig);
   const shopOptions = collectShopOptions();
   const calculationOptions = {
     config: calculationConfig,
@@ -1678,6 +1836,7 @@ function calculateProjection() {
     gameDayStartUtc: firstGameDayStartUtc(),
     currentDay,
     luckyElementalPerDay,
+    luckyRewardCutoffDays: luckyRewardCutoff.days,
     randomFragmentsPerDay: calculationConfig.crafting.randomFragmentsPerDay,
     randomStrategy: document.getElementById('randomStrategy').value,
     targets,
@@ -1728,7 +1887,7 @@ function calculateProjection() {
   const conversion = { ...result.conversion, text: conversionText(result.conversion) };
   const totalRuns = state.config.mapLevels.reduce((sum, level) => sum + result.futureRuns.own[level] + result.futureRuns.member[level], 0);
   const randomMaps = result.days.slice(currentDay + 1).reduce((sum, day) => sum + (day?.crafted.random || 0), 0);
-  const expectedLuckyElemental = result.daysRemaining * luckyElementalPerDay;
+  const expectedLuckyElemental = result.luckyRewards.remainingElemental;
   const divineFragments = {
     projected: result.totalDivineWeeklyFragments,
     weeklyCap: calculationConfig.fragmentRules.divine.weeklyCap,
@@ -1747,6 +1906,12 @@ function calculateProjection() {
     questRewards: result.questRewards,
     divineFragments,
     expectedLuckyElemental,
+    luckyRewards: {
+      ...result.luckyRewards,
+      automatic: luckyRewardCutoff.automatic,
+      automaticDays: luckyRewardCutoff.automaticDays,
+      lastResetDay: luckyRewardCutoff.lastResetDay,
+    },
     daysRemaining: result.daysRemaining,
     currentDay,
     dayIsManual: result.days[currentDay]?.isManual,
@@ -1841,6 +2006,12 @@ function setTargetCardState(card, projected, target) {
 function updateProjectionList(details) {
   const universalGap = details.projectedRewards.universal - details.targets.universal;
   const elementalGap = details.projectedRewards.elemental - details.targets.elemental;
+  const luckyCutoffSource = details.luckyRewards.automatic
+    ? 'automatic from final reset'
+    : 'custom override';
+  const luckyRewardSchedule = details.luckyRewards.lastRewardDay > 0
+    ? `${formatNumber.format(details.luckyRewards.perDay)}/day through Day ${formatNumber.format(details.luckyRewards.lastRewardDay)} · ${details.luckyRewards.cutoffDays > 0 ? `0/day on the final ${plural(details.luckyRewards.cutoffDays, 'day')}` : 'no final cutoff'} · ${luckyCutoffSource}`
+    : `0/day for the full event · ${luckyCutoffSource}`;
 
   document.getElementById('projectionList').innerHTML = `
     <section class="projection-section">
@@ -1858,7 +2029,7 @@ function updateProjectionList(details) {
         <div class="result-line"><span>Elemental</span><strong>${formatNumber.format(details.futureRewards.elemental)}</strong></div>
         <div class="result-line">
           <span>Lucky elemental</span>
-          <strong>${formatNumber.format(details.expectedLuckyElemental)} projected<small>Over the ${plural(details.daysRemaining, 'day')} left</small></strong>
+          <strong>${formatNumber.format(details.expectedLuckyElemental)} projected<small>${luckyRewardSchedule}</small></strong>
         </div>
       </div>
     </section>

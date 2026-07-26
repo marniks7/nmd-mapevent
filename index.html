@@ -93,10 +93,13 @@
         </label>
         <div class="plan-field">
           <div class="field-label-with-help">
-            <label for="luckyElementalPerDay">Lucky elemental per day</label>
+            <label id="luckyElementalPerDayLabel" for="luckyElementalPerDay">Lucky elemental per day</label>
             <details class="info-tooltip">
               <summary aria-label="About the Lucky elemental estimate">i</summary>
               <div class="info-tooltip-content">
+                <p id="luckyElementalScheduleHelp">Lucky Rewards are projected only through the final weekly reset.</p>
+                <p>The final days are excluded because few maps should remain after the last reset, making additional Lucky Rewards unlikely.</p>
+                <p>To change the cutoff, open <strong>Event Setup Extras</strong> and enter a value under <strong>Final days without Lucky Rewards</strong>. Leave it empty to calculate the cutoff automatically.</p>
                 <p>The default of 15 elemental shards per day is a conservative estimate based on tracking from the two previous events.</p>
                 <p>The tracked averages were 21.8 per day in Summer 2025 and 17 per day in Winter 2026. Lucky Rewards can vary between events, so you can replace 15 with your own observed rate.</p>
                 <figure>
@@ -229,6 +232,18 @@
             End date
             <input id="endDate" type="date" readonly>
           </label>
+          <label class="lucky-cutoff-setting">
+            Final days without Lucky Rewards
+            <input
+              id="luckyRewardCutoffDays"
+              type="number"
+              min="0"
+              inputmode="numeric"
+              placeholder="Automatic"
+              aria-describedby="luckyRewardCutoffHelp"
+            >
+            <small id="luckyRewardCutoffHelp">Calculated from the final weekly reset; enter a number to override.</small>
+          </label>
           <label class="check-row">
             <input id="hideSpecificElements" type="checkbox">
             Hide fire, wind, water, and lightning columns
@@ -255,7 +270,7 @@
 
       <details class="panel results-panel collapsible-results-panel" data-mobile-collapsed open>
         <summary class="panel-heading collapsible-panel-heading">
-          <h2>Map Breakdown</h2>
+          <h2>Remaining Map Breakdown</h2>
         </summary>
         <div class="breakdown-table" id="breakdownTable"></div>
       </details>

@@ -107,12 +107,31 @@ test('weekly reset schedule creates five event buckets and four after day three'
   assert.equal(engine.isWeeklyResetStart(gameDayStart, 5), true);
   assert.equal(engine.isWeekStartDay(gameDayStart, 5), true);
   assert.equal(engine.weeklyResetInstant(gameDayStart, 5, '19:00').toISOString(), '2026-07-11T19:00:00.000Z');
+  assert.equal(engine.lastWeeklyResetDay(gameDayStart, 28), 26);
+  assert.equal(engine.finalDaysAfterLastWeeklyReset(gameDayStart, 28), 2);
 
   const result = defaultProjection();
   assert.equal(result.totalDivineWeeklyFragments, 15);
   assert.equal(result.futureRuns.own.divine, 1);
   assert.equal(result.futureRuns.member.divine, 10);
   assert.equal(result.finalInventory.fragments.divine, 9);
+});
+
+test('Lucky Rewards cutoff removes elemental income from the final event days', () => {
+  const withoutCutoff = defaultProjection({ luckyRewardCutoffDays: 0 });
+  const withCutoff = defaultProjection({ luckyRewardCutoffDays: 2 });
+
+  assert.equal(
+    withoutCutoff.rawRewards.elemental - withCutoff.rawRewards.elemental,
+    30,
+  );
+  assert.deepEqual(withCutoff.luckyRewards, {
+    perDay: 15,
+    cutoffDays: 2,
+    lastRewardDay: 26,
+    remainingDays: 23,
+    remainingElemental: 345,
+  });
 });
 
 test('configured weekly reset weekday and Divine cap control active buckets', () => {

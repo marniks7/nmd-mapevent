@@ -164,10 +164,16 @@ function cumulativeWhole(value, state, key, maximum = Infinity) {
 function quantizeProjectedShop(shop, state, availableJades, availableRandomFragments) {
   if (!shop?.estimated) return shop;
   FRAGMENT_LEVELS.forEach((level) => {
-    shop.fragments[level] = cumulativeWhole(shop.fragments[level], state.fragments, level);
+    shop.coinFragments[level] = cumulativeWhole(
+      shop.coinFragments[level],
+      state.fragments,
+      level,
+    );
+    shop.fragments[level] = shop.targetFragments[level] + shop.coinFragments[level];
   });
   STANDARD_LEVELS.forEach((level) => {
-    shop.maps[level] = cumulativeWhole(shop.maps[level], state.maps, level);
+    shop.coinMaps[level] = cumulativeWhole(shop.coinMaps[level], state.maps, level);
+    shop.maps[level] = shop.targetMaps[level] + shop.coinMaps[level];
   });
   const jadePurchaseLimit = Number.isFinite(availableJades)
     ? Math.max(0, availableJades - shop.jadeSpent.resets)
@@ -358,6 +364,29 @@ function weekBuckets(startDate, startDay, eventDays, resetWeekday = 6, timeUtc =
     if (isWeekStartDay(startDate, day, resetWeekday, timeUtc)) count += 1;
   }
   return count;
+}
+
+function lastWeeklyResetDay(startDate, eventDays, resetWeekday = 6, timeUtc = '19:00') {
+  let lastResetDay = null;
+  for (let day = 1; day <= eventDays; day += 1) {
+    if (isWeeklyResetStart(startDate, day, resetWeekday, timeUtc)) lastResetDay = day;
+  }
+  return lastResetDay;
+}
+
+function finalDaysAfterLastWeeklyReset(
+  startDate,
+  eventDays,
+  resetWeekday = 6,
+  timeUtc = '19:00',
+) {
+  const lastResetDay = lastWeeklyResetDay(
+    startDate,
+    eventDays,
+    resetWeekday,
+    timeUtc,
+  );
+  return lastResetDay === null ? 0 : Math.max(0, eventDays - lastResetDay);
 }
 
 function clamp(value, min, max) {
@@ -658,6 +687,7 @@ function projectEvent(options) {
     gameDayStartUtc,
     currentDay = 1,
     luckyElementalPerDay = config.luckyRewards.elementalPerDay,
+    luckyRewardCutoffDays = 0,
     randomFragmentsPerDay = config.crafting.randomFragmentsPerDay,
     randomStrategy = 'minimum',
     targets = config.defaultTargets,
@@ -671,6 +701,13 @@ function projectEvent(options) {
     || startDate
     || gameDayStartForActivation(config.eventDates.activationUtc, config.eventDates.gameDayRolloverUtc);
   const safeCurrentDay = Math.min(eventDays, Math.max(1, currentDay));
+  const safeLuckyRewardCutoffDays = Math.floor(clamp(
+    Number(luckyRewardCutoffDays) || 0,
+    0,
+    eventDays,
+  ));
+  const lastLuckyRewardDay = eventDays - safeLuckyRewardCutoffDays;
+  const remainingLuckyRewardDays = Math.max(0, lastLuckyRewardDay - safeCurrentDay);
   const configuredShopStartDay = Math.floor(Number(shopOptions.startDay) || 1);
   const shopPlanningStartDay = clamp(configuredShopStartDay, 1, eventDays + 1);
   const awardsByDay = questAwardsForDays(config, eventDays, randomFragmentsPerDay, randomStrategy);
@@ -705,7 +742,7 @@ function projectEvent(options) {
     inventory.weekly.divineMemberRunsFinished = weeklyDivine.divineMemberRunsFinished;
     const memberRuns = dailyMemberRuns(config, weeklyDivine.divineMemberRuns);
     applyMemberRuns(config, inventory, memberRuns);
-    inventory.shards.elemental += luckyElementalPerDay;
+    if (day <= lastLuckyRewardDay) inventory.shards.elemental += luckyElementalPerDay;
     inventory.fragments.random += randomFragmentsPerDay;
     inventory.fragments.divine += weeklyDivine.divineFragmentsGained;
     awardsByDay[day].forEach((reward) => applyQuestReward(inventory, reward, randomStrategy));
@@ -842,6 +879,13 @@ function projectEvent(options) {
       config.eventDates?.weeklyReset?.weekday,
       config.eventDates?.weeklyReset?.timeUtc,
     ) * config.fragmentRules.divine.weeklyCap,
+    luckyRewards: {
+      perDay: luckyElementalPerDay,
+      cutoffDays: safeLuckyRewardCutoffDays,
+      lastRewardDay: lastLuckyRewardDay,
+      remainingDays: remainingLuckyRewardDays,
+      remainingElemental: remainingLuckyRewardDays * luckyElementalPerDay,
+    },
     shop: {
       enabled: Boolean(shopOptions.enabled && config.shop),
       estimated: Boolean(shopOptions.enabled && config.shop),
@@ -875,10 +919,12 @@ module.exports = {
   fragmentPurchaseLimitsFromUnused,
   fragmentSetNeedsFromUnused,
   currentGameDay,
+  finalDaysAfterLastWeeklyReset,
   gameDayEndInstant,
   gameDayStartForActivation,
   isWeekStartDay,
   isWeeklyResetStart,
+  lastWeeklyResetDay,
   weeklyResetInstant,
   projectEvent,
   questAwardsForDays,

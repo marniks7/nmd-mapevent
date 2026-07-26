@@ -164,6 +164,8 @@ test('budget target strategy selects the best-value candidate instead of scaling
 
   assert.equal(result.fragments.common, 0);
   assert.equal(result.fragments.divine, 1);
+  assert.equal(result.jadeFragments.divine, 1);
+  assert.equal(result.randomCurrencyFragments.divine, 0);
   assert.equal(result.jadeSpent.purchases, 150);
 });
 
@@ -414,10 +416,76 @@ test('coin slot applies non-event, Common map, fragment level, and quantity prob
   assert.ok(Math.abs(result.fragments.epic - 0.1656) < 1e-9);
   assert.ok(Math.abs(result.fragments.superior - 0.108) < 1e-9);
   assert.equal(result.fragments.divine, 0);
+  assert.deepEqual(result.coinFragments, result.fragments);
+  assert.deepEqual(result.targetFragments, {
+    common: 0,
+    epic: 0,
+    superior: 0,
+    divine: 0,
+    random: 0,
+  });
   assert.equal(result.maps.common, 0.08);
   assert.equal(result.maps.epic, 0);
   assert.equal(result.maps.superior, 0);
   assert.equal(result.maps.divine, 0);
+  assert.deepEqual(result.coinMaps, result.maps);
+  assert.deepEqual(result.targetMaps, {
+    common: 0,
+    epic: 0,
+    superior: 0,
+    divine: 0,
+  });
+});
+
+test('remaining coin purchase estimates stay separate from targeted purchases', () => {
+  const baseOptions = {
+    config,
+    eventDays: 28,
+    gameDayStartUtc: '2026-07-07T19:00:00Z',
+    currentDay: 19,
+    shopOptions: shopOptions({
+      strategy: 1,
+      startDay: 20,
+      buyCoinItems: true,
+    }),
+  };
+  const withoutResets = engine.projectEvent(baseOptions);
+  const withFiveDailyResets = engine.projectEvent({
+    ...baseOptions,
+    shopOptions: {
+      ...baseOptions.shopOptions,
+      resetsPerDay: 5,
+    },
+  });
+
+  assert.deepEqual(withoutResets.shop.all.coinFragments, {
+    common: 10,
+    epic: 1,
+    superior: 1,
+    divine: 0,
+    random: 1,
+  });
+  assert.deepEqual(withoutResets.shop.all.coinMaps, {
+    common: 1,
+    epic: 0,
+    superior: 0,
+    divine: 0,
+  });
+  assert.deepEqual(withFiveDailyResets.shop.all.coinFragments, {
+    common: 63,
+    epic: 9,
+    superior: 6,
+    divine: 0,
+    random: 9,
+  });
+  assert.deepEqual(withFiveDailyResets.shop.all.coinMaps, {
+    common: 4,
+    epic: 0,
+    superior: 0,
+    divine: 0,
+  });
+  assert.deepEqual(withFiveDailyResets.shop.all.fragments, withFiveDailyResets.shop.all.coinFragments);
+  assert.deepEqual(withFiveDailyResets.shop.all.maps, withFiveDailyResets.shop.all.coinMaps);
 });
 
 test('jade budget pays sequential reset costs before item purchases', () => {
@@ -469,6 +537,8 @@ test('random-fragment purchases cannot spend more fragments than available', () 
   assert.ok(result.randomFragmentsSpent > 0);
   assert.ok(result.randomFragmentsSpent <= 2);
   assert.ok(result.fragments.common > 0);
+  assert.equal(result.randomCurrencyFragments.common, result.fragments.common);
+  assert.equal(result.jadeFragments.common, 0);
   assert.equal(result.fragments.random, 0);
 });
 
@@ -667,13 +737,40 @@ test('projected shop inventory, maps, costs, and runs are always whole numbers',
   projections.forEach((result) => {
     result.days.slice(1).forEach((day) => {
       Object.values(day.shop.fragments).forEach((value) => assert.equal(Number.isInteger(value), true));
+      Object.values(day.shop.jadeFragments).forEach((value) => assert.equal(Number.isInteger(value), true));
+      Object.values(day.shop.randomCurrencyFragments).forEach((value) => assert.equal(Number.isInteger(value), true));
+      Object.values(day.shop.coinFragments).forEach((value) => assert.equal(Number.isInteger(value), true));
       Object.values(day.shop.maps).forEach((value) => assert.equal(Number.isInteger(value), true));
+      Object.values(day.shop.jadeMaps).forEach((value) => assert.equal(Number.isInteger(value), true));
+      Object.values(day.shop.coinMaps).forEach((value) => assert.equal(Number.isInteger(value), true));
+      Object.keys(day.shop.fragments).forEach((level) => {
+        assert.equal(
+          day.shop.fragments[level],
+          day.shop.targetFragments[level] + day.shop.coinFragments[level],
+        );
+        assert.equal(
+          day.shop.targetFragments[level],
+          day.shop.jadeFragments[level] + day.shop.randomCurrencyFragments[level],
+        );
+      });
+      Object.keys(day.shop.maps).forEach((level) => {
+        assert.equal(
+          day.shop.maps[level],
+          day.shop.targetMaps[level] + day.shop.coinMaps[level],
+        );
+        assert.equal(day.shop.targetMaps[level], day.shop.jadeMaps[level]);
+      });
       Object.values(day.ownRuns).forEach((value) => assert.equal(Number.isInteger(value), true));
       assert.equal(Number.isInteger(day.shop.jadeSpent.purchases), true);
       assert.ok(day.shop.jadeSpent.total <= day.shop.jadeBudgetAllocated);
     });
     Object.values(result.shop.all.fragments).forEach((value) => assert.equal(Number.isInteger(value), true));
+    Object.values(result.shop.all.jadeFragments).forEach((value) => assert.equal(Number.isInteger(value), true));
+    Object.values(result.shop.all.randomCurrencyFragments).forEach((value) => assert.equal(Number.isInteger(value), true));
+    Object.values(result.shop.all.coinFragments).forEach((value) => assert.equal(Number.isInteger(value), true));
     Object.values(result.shop.all.maps).forEach((value) => assert.equal(Number.isInteger(value), true));
+    Object.values(result.shop.all.jadeMaps).forEach((value) => assert.equal(Number.isInteger(value), true));
+    Object.values(result.shop.all.coinMaps).forEach((value) => assert.equal(Number.isInteger(value), true));
     Object.values(result.finalInventory.fragments).forEach((value) => assert.equal(Number.isInteger(value), true));
     Object.values(result.finalInventory.maps).forEach((value) => assert.equal(Number.isInteger(value), true));
   });

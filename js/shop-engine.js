@@ -374,8 +374,13 @@ function emptyShopDay(availableJades = Infinity) {
     randomFragmentsSpent: 0,
     fragments: emptyLevelTotals(FRAGMENT_LEVELS),
     targetFragments: emptyLevelTotals(FRAGMENT_LEVELS),
+    jadeFragments: emptyLevelTotals(FRAGMENT_LEVELS),
+    randomCurrencyFragments: emptyLevelTotals(FRAGMENT_LEVELS),
+    coinFragments: emptyLevelTotals(FRAGMENT_LEVELS),
     maps: emptyLevelTotals(MAP_LEVELS),
     targetMaps: emptyLevelTotals(MAP_LEVELS),
+    jadeMaps: emptyLevelTotals(MAP_LEVELS),
+    coinMaps: emptyLevelTotals(MAP_LEVELS),
     jadeBudgetAllocated: availableJades,
     jadeBudgetRemaining: availableJades,
     jadeBudgetExceeded: 0,
@@ -498,12 +503,18 @@ function projectShopDay({ config, options = {}, availableJades = Infinity, avail
   }
 
   FRAGMENT_LEVELS.forEach((level) => {
-    result.fragments[level] = jadePlan.fragments[level] + randomPlan.fragments[level] + coinPlan.fragments[level];
-    result.targetFragments[level] = jadePlan.fragments[level] + randomPlan.fragments[level];
+    result.jadeFragments[level] = jadePlan.fragments[level];
+    result.randomCurrencyFragments[level] = randomPlan.fragments[level];
+    result.targetFragments[level] = result.jadeFragments[level]
+      + result.randomCurrencyFragments[level];
+    result.coinFragments[level] = coinPlan.fragments[level];
+    result.fragments[level] = result.targetFragments[level] + result.coinFragments[level];
   });
   MAP_LEVELS.forEach((level) => {
-    result.maps[level] = jadePlan.maps[level] + coinPlan.maps[level];
-    result.targetMaps[level] = jadePlan.maps[level];
+    result.jadeMaps[level] = jadePlan.maps[level];
+    result.targetMaps[level] = result.jadeMaps[level];
+    result.coinMaps[level] = coinPlan.maps[level];
+    result.maps[level] = result.targetMaps[level] + result.coinMaps[level];
   });
   result.coinNonEventOffers = coinPlan.nonEventOffers;
   result.purchasedOffers = jadePlan.purchasedOffers + randomPlan.purchasedOffers + coinPlan.purchasedOffers;
@@ -536,8 +547,13 @@ function emptyShopTotals() {
     randomFragmentsSpent: 0,
     fragments: emptyLevelTotals(FRAGMENT_LEVELS),
     targetFragments: emptyLevelTotals(FRAGMENT_LEVELS),
+    jadeFragments: emptyLevelTotals(FRAGMENT_LEVELS),
+    randomCurrencyFragments: emptyLevelTotals(FRAGMENT_LEVELS),
+    coinFragments: emptyLevelTotals(FRAGMENT_LEVELS),
     maps: emptyLevelTotals(MAP_LEVELS),
     targetMaps: emptyLevelTotals(MAP_LEVELS),
+    jadeMaps: emptyLevelTotals(MAP_LEVELS),
+    coinMaps: emptyLevelTotals(MAP_LEVELS),
     jadeBudgetExceeded: 0,
   };
 }
@@ -558,8 +574,15 @@ function aggregateShopDays(days, startDay, endDay) {
     totals.randomFragmentsSpent += result.randomFragmentsSpent;
     FRAGMENT_LEVELS.forEach((level) => { totals.fragments[level] += result.fragments[level]; });
     FRAGMENT_LEVELS.forEach((level) => { totals.targetFragments[level] += result.targetFragments[level]; });
+    FRAGMENT_LEVELS.forEach((level) => { totals.jadeFragments[level] += result.jadeFragments[level]; });
+    FRAGMENT_LEVELS.forEach((level) => {
+      totals.randomCurrencyFragments[level] += result.randomCurrencyFragments[level];
+    });
+    FRAGMENT_LEVELS.forEach((level) => { totals.coinFragments[level] += result.coinFragments[level]; });
     MAP_LEVELS.forEach((level) => { totals.maps[level] += result.maps[level]; });
     MAP_LEVELS.forEach((level) => { totals.targetMaps[level] += result.targetMaps[level]; });
+    MAP_LEVELS.forEach((level) => { totals.jadeMaps[level] += result.jadeMaps[level]; });
+    MAP_LEVELS.forEach((level) => { totals.coinMaps[level] += result.coinMaps[level]; });
   }
   return totals;
 }
